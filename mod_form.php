@@ -47,6 +47,8 @@ class mod_workflow_mod_form extends moodleform_mod {
 
         $mform = $this->_form;
 
+        $workflow_type = $this->optional_param('workflow_type', 'assignment', PARAM_ALPHA);
+
         // Adding the "general" fieldset, where all the common settings are shown.
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
@@ -59,20 +61,42 @@ class mod_workflow_mod_form extends moodleform_mod {
             $mform->setType('name', PARAM_CLEANHTML);
         }
 
-        $workflow_types = array ('assignment'  => get_string('assignment', 'workflow'),
-            'quiz' => get_string('quiz', 'workflow'),
-            'exam'   => get_string('exam', 'workflow'));
-
-        $mform->addElement('select', 'workflow_type_select', get_string('workflowtype', 'workflow'), $workflow_types);
-        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
-        $mform->setDefault('workflow_type_select', 'general');
-
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         $mform->addHelpButton('name', 'workflowname', 'workflow');
 
+        $workflow_types = array ('assignment'  => get_string('assignment', 'workflow'),
+            'quiz' => get_string('quiz', 'workflow'),
+            'exam'   => get_string('exam', 'workflow'));
+
+        $workflow_type_select = $mform->addElement('select', 'workflow_type_select', get_string('workflowtype', 'workflow'), $workflow_types);
+        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+        $workflow_type_select->setSelected($workflow_type);
+
         // Adding the standard "intro" and "introformat" fields.
         $this->standard_intro_elements();
+
+        // Select instructor
+        $mform->addElement('select', 'instructor_select', 'Select instructor', $workflow_types);
+        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+
+        // Select reference
+        if (isset($workflow_type) && $workflow_type==='assignment') {
+            $mform->addElement('select', 'assignment_select', 'Select assignment', $workflow_types);
+            $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+        } else if (isset($workflow_type) && $workflow_type==='quiz') {
+            $mform->addElement('select', 'quiz_select', 'Select quiz', $workflow_types);
+            $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+        } else if (isset($workflow_type) && $workflow_type==='exam') {
+            $mform->addElement('text', 'exam_name', 'Exam name', array('size' => '64'));
+            $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+            $mform->addRule('name', null, 'required', null, 'client');
+            $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
+        }
+
+        $mform->addRule('name', null, 'required', null, 'client');
+        $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
+        $mform->addHelpButton('name', 'workflowname', 'workflow');
 
         $mform->addElement('header', 'availability', get_string('availability', 'assign'));
         $mform->setExpanded('availability', true);

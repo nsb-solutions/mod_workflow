@@ -7,7 +7,7 @@ select.addEventListener('change', function handleChange(event) {
     let url_o = new URL(url);
     let params = new URLSearchParams(window.location.search);
 
-    params.set('select', event.target.value);
+    params.set('workflow_type', event.target.value);
 
     window.onbeforeunload = null;
     window.location.href = url_o.origin + url_o.pathname + '?' + params.toString();
