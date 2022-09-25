@@ -1,14 +1,18 @@
-const select = document.getElementById('id_workflow_type_select');
+const workflow_type_select = document.getElementById('id_workflow_type_select');
+const assignment_select = document.getElementById('fitem_id_assignment_select');
+const quiz_select = document.getElementById('fitem_id_quiz_select');
 
-select.addEventListener('change', function handleChange(event) {
-    // console.log(event.target.value); // 👉️ get selected VALUE
-    let url = window.location.href;
+quiz_select.style.display='none'
 
-    let url_o = new URL(url);
-    let params = new URLSearchParams(window.location.search);
-
-    params.set('workflow_type', event.target.value);
-
-    window.onbeforeunload = null;
-    window.location.href = url_o.origin + url_o.pathname + '?' + params.toString();
+workflow_type_select.addEventListener('change', function handleChange(event) {
+    if (event.target.value==='assignment') {
+        assignment_select.style.display='flex'
+        quiz_select.style.display='none'
+    } else if (event.target.value==='quiz') {
+        assignment_select.style.display='none'
+        quiz_select.style.display='flex'
+    } else {
+        assignment_select.style.display='none'
+        quiz_select.style.display='none'
+    }
 })
