@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Display information about all the mod_workflow modules in the requested course.
+ * Display information about all the workflow modules in the requested course.
  *
- * @package     mod_workflow
+ * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -46,13 +46,13 @@ $PAGE->set_context($coursecontext);
 
 echo $OUTPUT->header();
 
-$modulenameplural = get_string('modulenameplural', 'mod_workflow');
+$modulenameplural = get_string('modulenameplural', 'workflow');
 echo $OUTPUT->heading($modulenameplural);
 
 $workflows = get_all_instances_in_course('workflow', $course);
 
 if (empty($workflows)) {
-    notice(get_string('no$workflowinstances', 'mod_workflow'), new moodle_url('/course/view.php', array('id' => $course->id)));
+    notice(get_string('no$workflowinstances', 'workflow'), new moodle_url('/course/view.php', array('id' => $course->id)));
 }
 
 $table = new html_table();

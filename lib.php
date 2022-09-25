@@ -17,7 +17,7 @@
 /**
  * Library of interface functions and constants.
  *
- * @package     mod_workflow
+ * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -40,7 +40,7 @@ function workflow_supports($feature) {
 }
 
 /**
- * Saves a new instance of the mod_workflow into the database.
+ * Saves a new instance of the workflow into the database.
  *
  * Given an object containing all the necessary data, (defined by the form
  * in mod_form.php) this function will create a new instance and return the id
@@ -61,7 +61,7 @@ function workflow_add_instance($moduleinstance, $mform = null) {
 }
 
 /**
- * Updates an instance of the mod_workflow in the database.
+ * Updates an instance of the workflow in the database.
  *
  * Given an object containing all the necessary data (defined in mod_form.php),
  * this function will update an existing instance with new data.
@@ -80,7 +80,7 @@ function workflow_update_instance($moduleinstance, $mform = null) {
 }
 
 /**
- * Removes an instance of the mod_workflow from the database.
+ * Removes an instance of the workflow from the database.
  *
  * @param int $id Id of the module instance.
  * @return bool True if successful, false on failure.

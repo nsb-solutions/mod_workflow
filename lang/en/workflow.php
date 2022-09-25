@@ -17,7 +17,7 @@
 /**
  * Plugin strings are defined here.
  *
- * @package     mod_workflow
+ * @package     workflow
  * @category    string
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -26,3 +26,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Workflow';
+$string['workflowname'] = 'Workflow name';
+$string['workflowname_help'] = 'This will help you to automate your workflow';
+$string['modulename'] = 'Moodle Plugin for Establishing Workflow';
+$string['modulenameplural'] = 'Moodle Plugin for Establishing Workflows';
+
+$string['assignment'] = 'Assignment';
+$string['quiz'] = 'Quiz';
+$string['exam'] = 'Exam';
+$string['workflowtype'] = 'Workflow type';
+$string['workflowtype_help'] = 'Select workflow type here';
