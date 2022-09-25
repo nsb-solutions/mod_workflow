@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Prints an instance of mod_workflow.
+ * Prints an instance of workflow.
  *
- * @package     mod_workflow
+ * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
