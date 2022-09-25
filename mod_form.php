@@ -41,6 +41,17 @@ class mod_workflow_mod_form extends moodleform_mod {
     public function definition() {
         global $CFG;
         global $PAGE;
+        global $DB;
+
+        $instructors_db = $DB->get_records_sql("SELECT email
+                                FROM mdl_user
+                                WHERE id in (
+                                SELECT userid
+                                FROM mdl_role_assignments
+                                WHERE roleid=3 or roleid=4
+                            );");
+
+        $instructor_keys = array_keys($instructors_db);
 
         // Load javascript
         $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
@@ -77,7 +88,7 @@ class mod_workflow_mod_form extends moodleform_mod {
         $this->standard_intro_elements();
 
         // Select instructor
-        $mform->addElement('select', 'instructor_select', 'Select instructor', $workflow_types);
+        $mform->addElement('select', 'instructor_select', 'Select instructor', array_combine($instructor_keys, $instructor_keys));
         $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
 
         // Select reference
@@ -87,11 +98,6 @@ class mod_workflow_mod_form extends moodleform_mod {
         } else if (isset($workflow_type) && $workflow_type==='quiz') {
             $mform->addElement('select', 'quiz_select', 'Select quiz', $workflow_types);
             $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
-        } else if (isset($workflow_type) && $workflow_type==='exam') {
-            $mform->addElement('text', 'exam_name', 'Exam name', array('size' => '64'));
-            $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
-            $mform->addRule('name', null, 'required', null, 'client');
-            $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         }
 
         $mform->addRule('name', null, 'required', null, 'client');
