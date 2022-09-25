@@ -43,6 +43,10 @@ class mod_workflow_mod_form extends moodleform_mod {
         global $PAGE;
         global $DB;
 
+        // Load javascript
+        $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
+
+        // Load instructors from database
         $instructors_db = $DB->get_records_sql("SELECT email
                                 FROM mdl_user
                                 WHERE id in (
@@ -53,8 +57,21 @@ class mod_workflow_mod_form extends moodleform_mod {
 
         $instructor_keys = array_keys($instructors_db);
 
-        // Load javascript
-        $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
+        $course_id = required_param('course', PARAM_ALPHANUM);
+
+        // Load assignments from databasw
+        $assignmentnames_db = $DB->get_records_sql("SELECT name
+                                FROM mdl_assign
+                                WHERE course=?;
+                                ", [$course_id]);
+        $assignmentnames_keys = array_keys($assignmentnames_db);
+
+        // Load quizzes from database
+        $quizznames_db = $DB->get_records_sql("SELECT name
+                                FROM mdl_quiz
+                                WHERE course=?;
+                                ", [$course_id]);
+        $quizznames_keys = array_keys($quizznames_db);
 
         $mform = $this->_form;
 
@@ -93,10 +110,10 @@ class mod_workflow_mod_form extends moodleform_mod {
 
         // Select reference
         if (isset($workflow_type) && $workflow_type==='assignment') {
-            $mform->addElement('select', 'assignment_select', 'Select assignment', $workflow_types);
+            $mform->addElement('select', 'assignment_select', 'Select assignment', array_combine($assignmentnames_keys, $assignmentnames_keys));
             $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
         } else if (isset($workflow_type) && $workflow_type==='quiz') {
-            $mform->addElement('select', 'quiz_select', 'Select quiz', $workflow_types);
+            $mform->addElement('select', 'quiz_select', 'Select quiz', array_combine($quizznames_keys, $quizznames_keys));
             $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
         }
 
