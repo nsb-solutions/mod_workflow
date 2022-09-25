@@ -109,13 +109,11 @@ class mod_workflow_mod_form extends moodleform_mod {
         $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
 
         // Select reference
-        if (isset($workflow_type) && $workflow_type==='assignment') {
-            $mform->addElement('select', 'assignment_select', 'Select assignment', array_combine($assignmentnames_keys, $assignmentnames_keys));
-            $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
-        } else if (isset($workflow_type) && $workflow_type==='quiz') {
-            $mform->addElement('select', 'quiz_select', 'Select quiz', array_combine($quizznames_keys, $quizznames_keys));
-            $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
-        }
+        $mform->addElement('select', 'assignment_select', 'Select assignment', array_combine($assignmentnames_keys, $assignmentnames_keys));
+        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+        $mform->addElement('select', 'quiz_select', 'Select quiz', array_combine($quizznames_keys, $quizznames_keys));
+        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+
 
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
