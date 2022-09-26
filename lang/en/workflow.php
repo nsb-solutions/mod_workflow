@@ -33,6 +33,6 @@ $string['modulenameplural'] = 'Moodle Plugin for Establishing Workflows';
 
 $string['assignment'] = 'Assignment';
 $string['quiz'] = 'Quiz';
-$string['exam'] = 'Exam';
+$string['other'] = 'Other';
 $string['workflowtype'] = 'Workflow type';
 $string['workflowtype_help'] = 'Select workflow type here';

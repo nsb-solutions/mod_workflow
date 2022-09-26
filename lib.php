@@ -51,15 +51,12 @@ function workflow_supports($feature) {
  * @return int The id of the newly inserted record.
  */
 function workflow_add_instance($moduleinstance, $mform = null) {
-    global $DB;
+    global $CFG;
+    require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
-    var_dump($moduleinstance);
-    die;
-    $moduleinstance->timecreated = time();
+    $workflow = new workflow(context_module::instance($moduleinstance->coursemodule), null, null);
 
-    $id = $DB->insert_record('workflow', $moduleinstance);
-
-    return $id;
+    return $workflow->add_instance($moduleinstance);
 }
 
 /**
@@ -73,12 +70,12 @@ function workflow_add_instance($moduleinstance, $mform = null) {
  * @return bool True if successful, false otherwise.
  */
 function workflow_update_instance($moduleinstance, $mform = null) {
-    global $DB;
+    global $CFG;
+    require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
-    $moduleinstance->timemodified = time();
-    $moduleinstance->id = $moduleinstance->instance;
-
-    return $DB->update_record('workflow', $moduleinstance);
+    $context = context_module::instance($moduleinstance->coursemodule);
+    $workflow = new workflow($context, null, null);
+    return $workflow->update_instance($moduleinstance);
 }
 
 /**
@@ -88,14 +85,13 @@ function workflow_update_instance($moduleinstance, $mform = null) {
  * @return bool True if successful, false on failure.
  */
 function workflow_delete_instance($id) {
-    global $DB;
+    global $CFG;
+    require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
-    $exists = $DB->get_record('workflow', array('id' => $id));
-    if (!$exists) {
-        return false;
-    }
+    $cm = get_coursemodule_from_instance('workflow', $id, 0, false, MUST_EXIST);
+    $context = context_module::instance($cm->id);
 
-    $DB->delete_records('workflow', array('id' => $id));
+    $workflow = new workflow($context, null, null);
 
-    return true;
+    return $workflow->delete_instance($id);
 }

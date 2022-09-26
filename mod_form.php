@@ -82,7 +82,7 @@ class mod_workflow_mod_form extends moodleform_mod {
 
         $workflow_types = array ('assignment'  => get_string('assignment', 'workflow'),
             'quiz' => get_string('quiz', 'workflow'),
-            'exam'   => get_string('exam', 'workflow'));
+            'other'   => get_string('other', 'workflow'));
 
         $mform->addElement('select', 'workflow_type_select', get_string('workflowtype', 'workflow'), $workflow_types);
         $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
@@ -102,7 +102,7 @@ class mod_workflow_mod_form extends moodleform_mod {
         $mform->addElement('select', 'assignment_select', 'Select assignment', $assignments);
         $mform->addHelpButton('assignment_select', 'workflowtype', 'workflow');
 
-        // Select quizz
+        // Select quiz
         $mform->addElement('select', 'quiz_select', 'Select quiz', $quizzes);
         $mform->addHelpButton('quiz_select', 'workflowtype', 'workflow');
 
@@ -182,6 +182,8 @@ class mod_workflow_mod_form extends moodleform_mod {
         foreach ($quizznames_db as $key => $value) {
             $quizzes[$value->id]=$value->name;
         }
+
+        return $quizzes;
     }
 
     private function get_assignments($DB, $course_id) {
