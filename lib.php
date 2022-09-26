@@ -53,6 +53,8 @@ function workflow_supports($feature) {
 function workflow_add_instance($moduleinstance, $mform = null) {
     global $DB;
 
+    var_dump($moduleinstance);
+    die;
     $moduleinstance->timecreated = time();
 
     $id = $DB->insert_record('workflow', $moduleinstance);
