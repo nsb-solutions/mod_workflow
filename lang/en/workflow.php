@@ -30,6 +30,7 @@ $string['workflowname'] = 'Workflow name';
 $string['workflowname_help'] = 'This will help you to automate your workflow';
 $string['modulename'] = 'Moodle Plugin for Establishing Workflow';
 $string['modulenameplural'] = 'Moodle Plugin for Establishing Workflows';
+$string['pluginadministration'] = 'Plugin Administration';
 
 $string['assignment'] = 'Assignment';
 $string['quiz'] = 'Quiz';

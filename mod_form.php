@@ -48,7 +48,11 @@ class mod_workflow_mod_form extends moodleform_mod {
         $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
 
         // Get course id from url
-        $course_id = required_param('course', PARAM_ALPHANUM);
+        if ($this->current && $this->current->course) {
+            $course_id = $this->current->course;
+        } else {
+            $course_id = required_param('course', PARAM_ALPHANUM);
+        }
 
         // Load lecturers from database
         $lecturers = $this->get_lecturers($DB, $course_id);
