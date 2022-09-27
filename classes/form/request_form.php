@@ -28,21 +28,45 @@ require_once("$CFG->libdir/formslib.php");
 
 class request_form extends moodleform {
 
-    public function definition() {
+    /**
+     * Defines forms elements
+     */
+    public function definition()
+    {
+        global $CFG;
+        global $PAGE;
 
-            global $CFG;
+        $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
 
-            $mform = $this->_form; // Don't forget the underscore!
+        $mform = $this->_form;
 
-            $mform->addElement('text', 'email', get_string('email'));
-            $mform->setType('email', PARAM_NOTAGS);
-            $mform->setDefault('email', 'Please enter email');
+        //Adding the select reason field
+        $reasons = array(
+            'medical' => get_string('medical', 'workflow'),
+            'university related' => get_string('university_related', 'workflow'),
+            'forgot' => get_string('forgot', 'workflow'),
+            'other' => get_string('other', 'workflow')
+        );
+        $reasons_select = $mform->addElement('select', 'reason_select', get_string('reason', 'workflow'), $reasons);
+        $mform->addHelpButton('reason_select', 'reason', 'workflow');
+        $reasons_select->setSelected($reasons);
 
-        }
+        //if other reason selected
+        $mform->addElement('text', 'other_reason', get_string('reason', 'workflow'), array('size' => '64'));
+        $mform->setType('other_reason', PARAM_ALPHA);
+        //$mform->addHelpButton('reason_select', 'other', 'workflow');
 
-        //Custom validation should be added here
-        function validation($data, $files) {
-            return array();
-        }
+        //Adding editor field to input any comments //TODO db
+        $mform->addElement('editor', 'comments', get_string('comments', 'workflow'));
+        $mform->setType('comments', PARAM_RAW);
 
+        //Adding file upload field
+        $mform->addElement('filemanager', 'attachments', get_string('evidence', 'workflow'), null,
+            array('subdirs' => 0, 'maxbytes' => 102400, 'areamaxbytes' => 10485760, 'maxfiles' => 50,
+                'accepted_types' => array('.doc', '.pdf', '.jpg', '.png', '.jpeg'), 'return_types'=> FILE_INTERNAL | FILE_EXTERNAL)); //TODO get file types form db
+
+        $mform->addElement('date_time_selector', 'extend_to', get_string('extend_to', 'workflow'));
+
+        $this->add_action_buttons();
+    }
 }

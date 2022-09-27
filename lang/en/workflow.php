@@ -36,3 +36,16 @@ $string['quiz'] = 'Quiz';
 $string['exam'] = 'Exam';
 $string['workflowtype'] = 'Workflow type';
 $string['workflowtype_help'] = 'Select workflow type here';
+
+
+$string['pluginadministration'] = 'plugin admin';  //TODO
+$string['reason'] = 'Reason of request';
+$string['reason_help'] = 'Select reason of request here';
+$string['medical'] = 'Medical';
+$string['university_related'] = 'University related';
+$string['forgot'] = 'Forgot';
+$string['other'] = 'Other';
+$string['other_help'] = 'Briefly state the reason';
+$string['comments'] = 'Comments';
+$string['evidence'] = 'Evidence';
+$string['extend_to'] = 'Extend to';

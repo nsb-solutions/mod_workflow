@@ -24,6 +24,9 @@
 
 require(__DIR__.'/../../config.php');
 require_once(__DIR__.'/lib.php');
+require_once(__DIR__.'/locallib.php');
+
+global $DB;
 
 // Course module id.
 $id = optional_param('id', 0, PARAM_INT);
@@ -45,6 +48,7 @@ require_login($course, true, $cm);
 
 $modulecontext = context_module::instance($cm->id);
 
+/*
 $event = \mod_workflow\event\course_module_viewed::create(array(
     'objectid' => $moduleinstance->id,
     'context' => $modulecontext
@@ -52,12 +56,29 @@ $event = \mod_workflow\event\course_module_viewed::create(array(
 $event->add_record_snapshot('course', $course);
 $event->add_record_snapshot('workflow', $moduleinstance);
 $event->trigger();
+*/
 
 $PAGE->set_url('/mod/workflow/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($moduleinstance->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($modulecontext);
+$PAGE->set_pagelayout('incourse');
+
 
 echo $OUTPUT->header();
+
+if (isguestuser()) {
+    // Guests can't create requests, so offer them a choice of logging in or going back.
+    echo $OUTPUT->view_page_guest($course, $quiz, $cm, $context, $viewobj->infomessages);
+    /*
+} else if (!isguestuser() && !($canattempt || $canpreview
+        || $viewobj->canreviewmine)) {
+    // If they are not enrolled in this course in a good enough role, tell them to enrol.
+    echo $output->view_page_notenrolled($course, $quiz, $cm, $context, $viewobj->infomessages);
+    */
+} else {
+    echo $OUTPUT->view_page($course, $quiz, $cm, $context, $viewobj);
+}
+
 
 echo $OUTPUT->footer();

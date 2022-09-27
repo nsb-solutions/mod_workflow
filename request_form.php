@@ -33,7 +33,6 @@ $rform = new request_form();
 
 echo $OUTPUT->header();
 
-echo "SAM";
 $rform->display();
 
 echo $OUTPUT->footer();
