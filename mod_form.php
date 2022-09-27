@@ -42,40 +42,31 @@ class mod_workflow_mod_form extends moodleform_mod {
         global $CFG;
         global $PAGE;
         global $DB;
+        global $USER;
 
         // Load javascript
         $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
 
+        // Get course id from url
+        if ($this->current && $this->current->course) {
+            $course_id = $this->current->course;
+        } else {
+            $course_id = required_param('course', PARAM_ALPHANUM);
+        }
+
+        // Load lecturers from database
+        $lecturers = $this->get_lecturers($DB, $course_id);
+
         // Load instructors from database
-        $instructors_db = $DB->get_records_sql("SELECT email
-                                FROM mdl_user
-                                WHERE id in (
-                                SELECT userid
-                                FROM mdl_role_assignments
-                                WHERE roleid=3 or roleid=4
-                            );");
-
-        $instructor_keys = array_keys($instructors_db);
-
-        $course_id = required_param('course', PARAM_ALPHANUM);
+        $instructors = $this->get_instructors($DB, $course_id);
 
         // Load assignments from databasw
-        $assignmentnames_db = $DB->get_records_sql("SELECT name
-                                FROM mdl_assign
-                                WHERE course=?;
-                                ", [$course_id]);
-        $assignmentnames_keys = array_keys($assignmentnames_db);
+        $assignments = $this->get_assignments($DB, $course_id);
 
         // Load quizzes from database
-        $quizznames_db = $DB->get_records_sql("SELECT name
-                                FROM mdl_quiz
-                                WHERE course=?;
-                                ", [$course_id]);
-        $quizznames_keys = array_keys($quizznames_db);
+        $quizzes = $this->get_quizzes($DB, $course_id);
 
         $mform = $this->_form;
-
-        $workflow_type = $this->optional_param('workflow_type', 'assignment', PARAM_ALPHA);
 
         // Adding the "general" fieldset, where all the common settings are shown.
         $mform->addElement('header', 'general', get_string('general', 'form'));
@@ -95,24 +86,29 @@ class mod_workflow_mod_form extends moodleform_mod {
 
         $workflow_types = array ('assignment'  => get_string('assignment', 'workflow'),
             'quiz' => get_string('quiz', 'workflow'),
-            'exam'   => get_string('exam', 'workflow'));
+            'other'   => get_string('other', 'workflow'));
 
-        $workflow_type_select = $mform->addElement('select', 'workflow_type_select', get_string('workflowtype', 'workflow'), $workflow_types);
+        $mform->addElement('select', 'workflow_type_select', get_string('workflowtype', 'workflow'), $workflow_types);
         $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
-        $workflow_type_select->setSelected($workflow_type);
 
         // Adding the standard "intro" and "introformat" fields.
         $this->standard_intro_elements();
 
         // Select instructor
-        $mform->addElement('select', 'instructor_select', 'Select instructor', array_combine($instructor_keys, $instructor_keys));
-        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+        $mform->addElement('select', 'lecturer_select', 'Select lecturer', $lecturers);
+        $mform->addHelpButton('lecturer_select', 'workflowtype', 'workflow');
 
-        // Select reference
-        $mform->addElement('select', 'assignment_select', 'Select assignment', array_combine($assignmentnames_keys, $assignmentnames_keys));
-        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
-        $mform->addElement('select', 'quiz_select', 'Select quiz', array_combine($quizznames_keys, $quizznames_keys));
-        $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+        // Select instructor
+        $mform->addElement('select', 'instructor_select', 'Select instructor', $instructors);
+        $mform->addHelpButton('instructor_select', 'workflowtype', 'workflow');
+
+        // Select assignments
+        $mform->addElement('select', 'assignment_select', 'Select assignment', $assignments);
+        $mform->addHelpButton('assignment_select', 'workflowtype', 'workflow');
+
+        // Select quiz
+        $mform->addElement('select', 'quiz_select', 'Select quiz', $quizzes);
+        $mform->addHelpButton('quiz_select', 'workflowtype', 'workflow');
 
 
         $mform->addRule('name', null, 'required', null, 'client');
@@ -140,38 +136,70 @@ class mod_workflow_mod_form extends moodleform_mod {
         $mform->addHelpButton('alwaysshowdescription', 'alwaysshowdescription', 'assign');
         $mform->disabledIf('alwaysshowdescription', 'allowsubmissionsfromdate[enabled]', 'notchecked');
 
-        $mform->addElement('header', 'submissionsettings', get_string('submissionsettings', 'assign'));
-
-        $name = get_string('submissiondrafts', 'assign');
-        $mform->addElement('selectyesno', 'submissiondrafts', $name);
-        $mform->addHelpButton('submissiondrafts', 'submissiondrafts', 'assign');
-
-        $name = get_string('requiresubmissionstatement', 'assign');
-        $mform->addElement('selectyesno', 'requiresubmissionstatement', $name);
-        $mform->addHelpButton('requiresubmissionstatement',
-            'requiresubmissionstatement',
-            'assign');
-        $mform->setType('requiresubmissionstatement', PARAM_BOOL);
-
-        $options = array(
-            ASSIGN_ATTEMPT_REOPEN_METHOD_NONE => get_string('attemptreopenmethod_none', 'mod_assign'),
-            ASSIGN_ATTEMPT_REOPEN_METHOD_MANUAL => get_string('attemptreopenmethod_manual', 'mod_assign'),
-            ASSIGN_ATTEMPT_REOPEN_METHOD_UNTILPASS => get_string('attemptreopenmethod_untilpass', 'mod_assign')
-        );
-        $mform->addElement('select', 'attemptreopenmethod', get_string('attemptreopenmethod', 'mod_assign'), $options);
-        $mform->addHelpButton('attemptreopenmethod', 'attemptreopenmethod', 'mod_assign');
-
-        $options = array(ASSIGN_UNLIMITED_ATTEMPTS => get_string('unlimitedattempts', 'mod_assign'));
-        $options += array_combine(range(1, 30), range(1, 30));
-        $mform->addElement('select', 'maxattempts', get_string('maxattempts', 'mod_assign'), $options);
-        $mform->addHelpButton('maxattempts', 'maxattempts', 'assign');
-        $mform->hideIf('maxattempts', 'attemptreopenmethod', 'eq', ASSIGN_ATTEMPT_REOPEN_METHOD_NONE);
-
-
         // Add standard elements.
         $this->standard_coursemodule_elements();
 
         // Add standard buttons.
         $this->add_action_buttons();
+    }
+
+    private function get_instructors($DB, $course_id) {
+         $instructors_db = $DB->get_records_sql("SELECT u.id, u.email
+                                    FROM mdl_course c
+                                    JOIN mdl_context ct ON c.id = ct.instanceid
+                                    JOIN mdl_role_assignments ra ON ra.contextid = ct.id
+                                    JOIN mdl_user u ON u.id = ra.userid
+                                    JOIN mdl_role r ON r.id = ra.roleid
+                                    WHERE (r.id = 3 OR r.id = 4) AND c.id = ?;", [$course_id]);
+
+        $instructors = array();
+        foreach ($instructors_db as $key => $value) {
+            $instructors[$value->id]=$value->email;
+        }
+
+        return $instructors;
+    }
+
+    private function get_lecturers($DB, $course_id) {
+        $lecturers_db = $DB->get_records_sql("SELECT u.id, u.email
+                                    FROM mdl_course c
+                                    JOIN mdl_context ct ON c.id = ct.instanceid
+                                    JOIN mdl_role_assignments ra ON ra.contextid = ct.id
+                                    JOIN mdl_user u ON u.id = ra.userid
+                                    JOIN mdl_role r ON r.id = ra.roleid
+                                    WHERE r.id = 3 AND c.id = ?;", [$course_id]);
+
+        $lecturers = array();
+        foreach ($lecturers_db as $key => $value) {
+            $lecturers[$value->id]=$value->email;
+        }
+
+        return $lecturers;
+    }
+
+    private function get_quizzes($DB, $course_id) {
+        $quizznames_db = $DB->get_records_sql("SELECT id, name
+                                FROM mdl_quiz
+                                WHERE course=?;
+                                ", [$course_id]);
+        $quizzes = array();
+        foreach ($quizznames_db as $key => $value) {
+            $quizzes[$value->id]=$value->name;
+        }
+
+        return $quizzes;
+    }
+
+    private function get_assignments($DB, $course_id) {
+        $assignmentnames_db = $DB->get_records_sql("SELECT id, name
+                                FROM mdl_assign
+                                WHERE course=?;
+                                ", [$course_id]);
+        $assignments = array();
+        foreach ($assignmentnames_db as $key => $value) {
+            $assignments[$value->id]=$value->name;
+        }
+
+        return $assignments;
     }
 }
