@@ -15,38 +15,42 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Prints an instance of workflow.
+ * Library of interface functions and constants.
  *
  * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require(__DIR__.'/../../config.php');
-require_once(__DIR__.'/lib.php');
-require_once($CFG->dirroot . '/mod/workflow/locallib.php');
+namespace mod_workflow\event;
 
-// Course module id.
-$id = required_param('id', PARAM_INT);
+defined('MOODLE_INTERNAL') || die();
 
-list ($course, $cm) = get_course_and_cm_from_cmid($id, 'workflow');
+global $CFG;
 
-require_login($course, true, $cm);
+/**
+ * Library of interface functions and constants.
+ *
+ * @package     workflow
+ * @copyright   2022 NSB<nsb.software.lk@gmail.com>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
-$context = context_module::instance($cm->id);
+class course_module_viewed extends \core\event\course_module_viewed {
 
-require_capability('mod/workflow:view', $context);
+    /**
+     * Init method.
+     */
+    protected function init() {
+        $this->data['crud'] = 'r';
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
+        $this->data['objecttable'] = 'workflow';
+    }
 
-$workflow = new workflow($context, $cm, $course);
-$urlparams = array('id' => $id,
-    'action' => optional_param('action', '', PARAM_ALPHA));
-
-$url = new moodle_url('/mod/workflow/view.php', $urlparams);
-$PAGE->set_url($url);
-
-// Update module completion status.
-$workflow->set_module_viewed();
-
-// Get the assign class to
-// render the page.
-echo $workflow->view(optional_param('action', '', PARAM_ALPHA));
+    /**
+     * Get objectid mapping
+     */
+    public static function get_objectid_mapping() {
+        return array('db' => 'workflow', 'restore' => 'workflow');
+    }
+}

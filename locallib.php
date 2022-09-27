@@ -39,7 +39,7 @@ class workflow {
     private $instance;
 
     /** @var array $var array an array containing requests of this workflow */
-    private $requestinstances = [];
+    private $userinstances = [];
 
     /** @var context the context of the course module for this workflow instance
      *               (or just the course if we are creating a new one)
@@ -48,6 +48,9 @@ class workflow {
 
     /** @var stdClass the course this workflow instance belongs to */
     private $course;
+
+    /** @var assign_renderer the custom renderer for this module */
+    private $output;
 
     /** @var cm_info the course module for this workflow instance */
     private $coursemodule;
@@ -198,5 +201,271 @@ class workflow {
         }
 
         return $result;
+    }
+
+    /**
+     * Get the context of the current course.
+     *
+     * @return mixed context|null The course context
+     */
+    public function get_course_context() {
+        if (!$this->context && !$this->course) {
+            throw new coding_exception('Improper use of the assignment class. ' .
+                'Cannot load the course context.');
+        }
+        if ($this->context) {
+            return $this->context->get_course_context();
+        } else {
+            return context_course::instance($this->course->id);
+        }
+    }
+
+    /**
+     * Get the current course.
+     *
+     * @return mixed stdClass|null The course
+     */
+    public function get_course() {
+        global $DB;
+
+        if ($this->course && is_object($this->course)) {
+            return $this->course;
+        }
+
+        if (!$this->context) {
+            return null;
+        }
+        $params = array('id' => $this->get_course_context()->instanceid);
+        $this->course = $DB->get_record('workflow', $params, '*', MUST_EXIST);
+
+        return $this->course;
+    }
+
+    /**
+     * Get the current course module.
+     *
+     * @return cm_info|null The course module or null if not known
+     */
+    public function get_course_module() {
+        if ($this->coursemodule) {
+            return $this->coursemodule;
+        }
+        if (!$this->context) {
+            return null;
+        }
+
+        if ($this->context->contextlevel == CONTEXT_MODULE) {
+            $modinfo = get_fast_modinfo($this->get_course());
+            $this->coursemodule = $modinfo->get_cm($this->context->instanceid);
+            return $this->coursemodule;
+        }
+        return null;
+    }
+
+    /**
+     * Get the settings for the current instance of this workflow.
+     *
+     * @return stdClass The settings
+     * @throws dml_exception
+     */
+    public function get_default_instance() {
+        global $DB;
+        if (!$this->instance && $this->get_course_module()) {
+            $params = array('id' => $this->get_course_module()->instance);
+            $this->instance = $DB->get_record('workflow', $params, '*', MUST_EXIST);
+
+            $this->userinstances = [];
+        }
+        return $this->instance;
+    }
+
+    /**
+     * Get the settings for the current instance of this assignment
+     * @param int|null $userid the id of the user to load the assign instance for.
+     * @return stdClass The settings
+     */
+    public function get_instance(int $userid = null) : stdClass {
+        global $USER;
+        $userid = $userid ?? $USER->id;
+
+        $this->instance = $this->get_default_instance();
+
+        // If we have the user instance already, just return it.
+        if (isset($this->userinstances[$userid])) {
+            return $this->userinstances[$userid];
+        }
+
+        // Calculate properties which vary per user.
+        $this->userinstances[$userid] = $this->calculate_properties($this->instance, $userid);
+        return $this->userinstances[$userid];
+    }
+
+    /**
+     * Calculates and updates various properties based on the specified user.
+     *
+     * @param stdClass $record the raw assign record.
+     * @param int $userid the id of the user to calculate the properties for.
+     * @return stdClass a new record having calculated properties.
+     */
+    private function calculate_properties(\stdClass $record, int $userid) : \stdClass {
+        $record = clone ($record);
+
+        // Relative dates.
+        if (!empty($record->duedate)) {
+            $course = $this->get_course();
+            $usercoursedates = course_get_course_dates_for_user_id($course, $userid);
+            if ($usercoursedates['start']) {
+                $userprops = ['duedate' => $record->duedate + $usercoursedates['startoffset']];
+                $record = (object) array_merge((array) $record, (array) $userprops);
+            }
+        }
+        return $record;
+    }
+
+    /**
+     * Get context module.
+     *
+     * @return context
+     */
+    public function get_context() {
+        return $this->context;
+    }
+
+    /**
+     * Update the module completion status (set it viewed) and trigger module viewed event.
+     *
+     * @since Moodle 3.2
+     */
+    public function set_module_viewed() {
+        $completion = new completion_info($this->get_course());
+        $completion->set_module_viewed($this->get_course_module());
+
+        // Trigger the course module viewed event.
+        $workflowinstance = $this->get_instance();
+        $params = [
+            'objectid' => $workflowinstance->id,
+            'context' => $this->get_context()
+        ];
+
+        $event = \mod_workflow\event\course_module_viewed::create($params);
+
+        $event->add_record_snapshot('workflow', $workflowinstance);
+        $event->trigger();
+    }
+
+    /**
+     * Lazy load the page renderer and expose the renderer to plugins.
+     *
+     * @return assign_renderer
+     */
+    public function get_renderer() {
+        global $PAGE;
+        if ($this->output) {
+            return $this->output;
+        }
+        $this->output = $PAGE->get_renderer('mod_assign', null, RENDERER_TARGET_GENERAL);
+        return $this->output;
+    }
+
+
+    /**
+     * Display the page footer.
+     *
+     * @return string
+     */
+    protected function view_footer() {
+        // When viewing the footer during PHPUNIT tests a set_state error is thrown.
+        if (!PHPUNIT_TEST) {
+            return $this->get_renderer()->render_footer();
+        }
+
+        return '';
+    }
+
+    /**
+     * Display the workflow, used by view.php
+     *
+     * The workflow is displayed differently depending on your role,
+     * the settings for the workflow and the status of the workflow.
+     *
+     * @param string $action The current action if any.
+     * @param array $args Optional arguments to pass to the view (instead of getting them from GET and POST).
+     * @return string - The page output.
+     */
+    public function view($action='', $args = array()) {
+        global $PAGE;
+
+        $o = '';
+        $mform = null;
+        $nextpageparams = array();
+
+        if (!empty($this->get_course_module()->id)) {
+            $nextpageparams['id'] = $this->get_course_module()->id;
+        }
+
+        // Handle form submissions first.
+        if ($action == 'TODO') {
+
+        }
+        else {
+            $o .= $this->view_submission_page();
+        }
+
+        return $o;
+    }
+
+    /**
+     * View submissions page (contains details of current submission).
+     *
+     * @return string
+     */
+    protected function view_submission_page() {
+        global $CFG, $DB, $USER, $PAGE;
+
+        $instance = $this->get_instance();
+
+//        $this->add_grade_notices();
+
+        $o = '';
+
+        $postfix = '';
+//        if ($this->has_visible_attachments()) {
+//            $postfix = $this->render_area_files('mod_assign', ASSIGN_INTROATTACHMENT_FILEAREA, 0);
+//        }
+
+        $o .= $this->get_renderer()->render(new assign_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        // Display plugin specific headers.
+//        $plugins = array_merge($this->get_submission_plugins(), $this->get_feedback_plugins());
+//        foreach ($plugins as $plugin) {
+//            if ($plugin->is_enabled() && $plugin->is_visible()) {
+//                $o .= $this->get_renderer()->render(new assign_plugin_header($plugin));
+//            }
+//        }
+
+//        if ($this->can_view_grades()) {
+//            // Group selector will only be displayed if necessary.
+//            $currenturl = new moodle_url('/mod/assign/view.php', array('id' => $this->get_course_module()->id));
+//            $o .= groups_print_activity_menu($this->get_course_module(), $currenturl->out(), true);
+//
+//            $summary = $this->get_assign_grading_summary_renderable();
+//            $o .= $this->get_renderer()->render($summary);
+//        }
+//        $grade = $this->get_user_grade($USER->id, false);
+//        $submission = $this->get_user_submission($USER->id, false);
+
+//        if ($this->can_view_submission($USER->id)) {
+//            $o .= $this->view_student_summary($USER, true);
+//        }
+
+        $o .= $this->view_footer();
+
+//        \mod_assign\event\submission_status_viewed::create_from_assign($this)->trigger();
+
+        return $o;
     }
 }
