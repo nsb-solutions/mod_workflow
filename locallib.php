@@ -196,7 +196,7 @@ class workflow {
             $update_quiz->quiz = $formdata->quiz_select;
             $result_quiz = $DB->update_record('workflow_quiz', $update_quiz);
         } else if ($update->type==='other') {
-            $update_other = $DB->get_record('workflow_quiz', array('workflow'=>$formdata->instance), '*');
+            $update_other = $DB->get_record('workflow_other', array('workflow'=>$formdata->instance), '*');
             $result_other = $DB->update_record('workflow_other', $update_other);
         }
 
