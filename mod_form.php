@@ -161,7 +161,7 @@ class mod_workflow_mod_form extends moodleform_mod {
     }
 
     private function get_instructors($DB, $course_id) {
-         $instructors_db = $DB->get_records_sql("SELECT u.id, u.email
+         $instructors_db = $DB->get_records_sql("SELECT DISTINCT u.id, u.email
                                     FROM mdl_course c
                                     JOIN mdl_context ct ON c.id = ct.instanceid
                                     JOIN mdl_role_assignments ra ON ra.contextid = ct.id
