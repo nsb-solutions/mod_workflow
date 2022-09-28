@@ -54,6 +54,13 @@ class mod_workflow_mod_form extends moodleform_mod {
             $course_id = required_param('course', PARAM_ALPHANUM);
         }
 
+        $coursemodule_id = $this->optional_param('update', 0, PARAM_ALPHANUM);
+
+        // Load previous form if exists
+        if ($coursemodule_id) {
+            $prev_form = $this->get_prev_form($DB, $coursemodule_id);
+        }
+
         // Load lecturers from database
         $lecturers = $this->get_lecturers($DB, $course_id);
 
@@ -88,27 +95,42 @@ class mod_workflow_mod_form extends moodleform_mod {
             'quiz' => get_string('quiz', 'workflow'),
             'other'   => get_string('other', 'workflow'));
 
-        $mform->addElement('select', 'workflow_type_select', get_string('workflowtype', 'workflow'), $workflow_types);
+        $workflow_type_select = $mform->addElement('select', 'workflow_type_select', get_string('workflowtype', 'workflow'), $workflow_types);
         $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
+        if (isset($prev_form)) {
+            $workflow_type_select->setSelected($prev_form->type);
+        }
 
         // Adding the standard "intro" and "introformat" fields.
         $this->standard_intro_elements();
 
         // Select instructor
-        $mform->addElement('select', 'lecturer_select', 'Select lecturer', $lecturers);
+        $lecturer_select = $mform->addElement('select', 'lecturer_select', 'Select lecturer', $lecturers);
         $mform->addHelpButton('lecturer_select', 'workflowtype', 'workflow');
+        if (isset($prev_form)) {
+            $lecturer_select->setSelected($prev_form->lecturer);
+        }
 
         // Select instructor
-        $mform->addElement('select', 'instructor_select', 'Select instructor', $instructors);
+        $instructor_select = $mform->addElement('select', 'instructor_select', 'Select instructor', $instructors);
         $mform->addHelpButton('instructor_select', 'workflowtype', 'workflow');
+        if (isset($prev_form)) {
+            $instructor_select->setSelected($prev_form->instructor);
+        }
 
         // Select assignments
-        $mform->addElement('select', 'assignment_select', 'Select assignment', $assignments);
+        $assignment_select = $mform->addElement('select', 'assignment_select', 'Select assignment', $assignments);
         $mform->addHelpButton('assignment_select', 'workflowtype', 'workflow');
+        if (isset($prev_form) && $prev_form->type==='assignment') {
+            $assignment_select->setSelected('assignment');
+        }
 
         // Select quiz
-        $mform->addElement('select', 'quiz_select', 'Select quiz', $quizzes);
+        $quiz_select = $mform->addElement('select', 'quiz_select', 'Select quiz', $quizzes);
         $mform->addHelpButton('quiz_select', 'workflowtype', 'workflow');
+        if (isset($prev_form) && $prev_form->type==='quiz') {
+            $quiz_select->setSelected('quiz');
+        }
 
 
         $mform->addRule('name', null, 'required', null, 'client');
@@ -130,11 +152,6 @@ class mod_workflow_mod_form extends moodleform_mod {
         $name = get_string('cutoffdate', 'assign');
         $mform->addElement('date_time_selector', 'cutoffdate', $name, array('optional'=>true));
         $mform->addHelpButton('cutoffdate', 'cutoffdate', 'assign');
-
-        $name = get_string('alwaysshowdescription', 'assign');
-        $mform->addElement('checkbox', 'alwaysshowdescription', $name);
-        $mform->addHelpButton('alwaysshowdescription', 'alwaysshowdescription', 'assign');
-        $mform->disabledIf('alwaysshowdescription', 'allowsubmissionsfromdate[enabled]', 'notchecked');
 
         // Add standard elements.
         $this->standard_coursemodule_elements();
@@ -178,10 +195,14 @@ class mod_workflow_mod_form extends moodleform_mod {
     }
 
     private function get_quizzes($DB, $course_id) {
-        $quizznames_db = $DB->get_records_sql("SELECT id, name
-                                FROM mdl_quiz
-                                WHERE course=?;
-                                ", [$course_id]);
+        $quizznames_db = $DB->get_records_sql("SELECT mdl_quiz.id, mdl_quiz.name
+                                            FROM mdl_course_modules
+                                            INNER JOIN mdl_modules
+                                            ON mdl_course_modules.module = mdl_modules.id
+                                            INNER JOIN mdl_quiz
+                                            ON mdl_course_modules.instance = mdl_quiz.id
+                                            WHERE mdl_modules.name='quiz' AND mdl_course_modules.deletioninprogress=0 AND mdl_quiz.course=?;
+                                 ", [$course_id]);
         $quizzes = array();
         foreach ($quizznames_db as $key => $value) {
             $quizzes[$value->id]=$value->name;
@@ -191,9 +212,13 @@ class mod_workflow_mod_form extends moodleform_mod {
     }
 
     private function get_assignments($DB, $course_id) {
-        $assignmentnames_db = $DB->get_records_sql("SELECT id, name
-                                FROM mdl_assign
-                                WHERE course=?;
+        $assignmentnames_db = $DB->get_records_sql("SELECT mdl_assign.id, mdl_assign.name
+                                                FROM mdl_course_modules
+                                                INNER JOIN mdl_modules
+                                                ON mdl_course_modules.module = mdl_modules.id
+                                                INNER JOIN mdl_assign
+                                                ON mdl_course_modules.instance = mdl_assign.id
+                                                WHERE mdl_modules.name='assign' AND mdl_course_modules.deletioninprogress=0 AND mdl_assign.course=?;
                                 ", [$course_id]);
         $assignments = array();
         foreach ($assignmentnames_db as $key => $value) {
@@ -201,5 +226,17 @@ class mod_workflow_mod_form extends moodleform_mod {
         }
 
         return $assignments;
+    }
+
+    private function get_prev_form($DB, $coursemodule_id) {
+        $prevform_db = $DB->get_record_sql("SELECT *
+                                        FROM mdl_workflow
+                                        WHERE id IN (
+                                        SELECT instance
+                                        FROM mdl_course_modules
+                                        WHERE id=? );
+                            ", [$coursemodule_id]);
+
+        return $prevform_db;
     }
 }
