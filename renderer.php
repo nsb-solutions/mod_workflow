@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Prints an instance of workflow.
+ * A custom renderer class that extends the plugin_renderer_base and is used by the assign module.
  *
  * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
