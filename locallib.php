@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/workflow/mod_form.php');
+require_once($CFG->dirroot . '/mod/workflow/renderable.php');
 
 /**
  * Module instance settings form.
@@ -363,7 +364,7 @@ class workflow {
         if ($this->output) {
             return $this->output;
         }
-        $this->output = $PAGE->get_renderer('mod_assign', null, RENDERER_TARGET_GENERAL);
+        $this->output = $PAGE->get_renderer('mod_workflow', null, RENDERER_TARGET_GENERAL);
         return $this->output;
     }
 
@@ -433,7 +434,7 @@ class workflow {
 //            $postfix = $this->render_area_files('mod_assign', ASSIGN_INTROATTACHMENT_FILEAREA, 0);
 //        }
 
-        $o .= $this->get_renderer()->render(new assign_header($instance,
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
             $this->get_context(),
             true,
             $this->get_course_module()->id,
@@ -461,6 +462,10 @@ class workflow {
 //        if ($this->can_view_submission($USER->id)) {
 //            $o .= $this->view_student_summary($USER, true);
 //        }
+
+        $summary = new workflow_grading_summary(0, '0', 0, true, 0, 0, 1664661600, '8', 0,
+        '0', false, '0', "1663711200", true, '1');
+        $o .= $this->get_renderer()->render($summary);
 
         $o .= $this->view_footer();
 
