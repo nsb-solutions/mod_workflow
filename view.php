@@ -26,6 +26,7 @@ require(__DIR__.'/../../config.php');
 require_once(__DIR__.'/lib.php');
 require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
+global  $DB, $CFG, $PAGE;
 // Course module id.
 $id = required_param('id', PARAM_INT);
 

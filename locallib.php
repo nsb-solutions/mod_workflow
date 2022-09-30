@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/workflow/mod_form.php');
+require_once($CFG->dirroot . '/mod/workflow/classes/blocks/block_requestformblock.php');
 
 /**
  * Module instance settings form.
@@ -34,7 +35,8 @@ require_once($CFG->dirroot . '/mod/workflow/mod_form.php');
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-class workflow {
+class workflow
+{
     /** @var stdClass the workflow record that contains the global settings for this workflow instance */
     private $instance;
 
@@ -78,7 +80,8 @@ class workflow {
      *                      otherwise this class will load one from the context as required.
      */
 
-    public function __construct($coursemodulecontext, $coursemodule, $course) {
+    public function __construct($coursemodulecontext, $coursemodule, $course)
+    {
         $this->context = $coursemodulecontext;
         $this->course = $course;
 
@@ -97,7 +100,8 @@ class workflow {
      *             when upgrading an old assignment to a new one (the plugins get called manually)
      * @return mixed false if an error occurs or the int id of the new instance
      */
-    public function add_instance(stdClass $formdata) {
+    public function add_instance(stdClass $formdata)
+    {
         global $DB;
 
         // Add the database record.
@@ -117,17 +121,17 @@ class workflow {
 
         $returnid = $DB->insert_record('workflow', $update);
 
-        if ($update->type==='assignment') {
+        if ($update->type === 'assignment') {
             $update_assignment = new stdClass();
             $update_assignment->workflow = $returnid;
             $update_assignment->assignment = $formdata->assignment_select;
             $returnid_assignment = $DB->insert_record('workflow_assignment', $update_assignment);
-        } else if ($update->type==='quiz') {
+        } else if ($update->type === 'quiz') {
             $update_quiz = new stdClass();
             $update_quiz->workflow = $returnid;
             $update_quiz->quiz = $formdata->quiz_select;
             $returnid_quiz = $DB->insert_record('workflow_quiz', $update_quiz);
-        } else if ($update->type==='other') {
+        } else if ($update->type === 'other') {
             $update_other = new stdClass();
             $update_other->workflow = $returnid;
             $returnid_other = $DB->insert_record('workflow_other', $update_other);
@@ -141,22 +145,23 @@ class workflow {
      *
      * @return bool false if an error occurs
      */
-    public function delete_instance($id) {
+    public function delete_instance($id)
+    {
         global $DB;
         $result = true;
 
-        $workflow_record = $DB->get_record('workflow', array('id'=>$id), 'type');
+        $workflow_record = $DB->get_record('workflow', array('id' => $id), 'type');
 
-        if ($workflow_record->type==='assignment') {
-            $DB->delete_records('workflow_assignment', array('workflow'=>$id));
-        } else if ($workflow_record->type==='quiz') {
-            $DB->delete_records('workflow_quiz', array('workflow'=>$id));
-        } else if ($workflow_record->type==='other') {
-            $DB->delete_records('workflow_other', array('workflow'=>$id));
+        if ($workflow_record->type === 'assignment') {
+            $DB->delete_records('workflow_assignment', array('workflow' => $id));
+        } else if ($workflow_record->type === 'quiz') {
+            $DB->delete_records('workflow_quiz', array('workflow' => $id));
+        } else if ($workflow_record->type === 'other') {
+            $DB->delete_records('workflow_other', array('workflow' => $id));
         }
 
         // Delete the instance.
-        $DB->delete_records('workflow', array('id'=>$id));
+        $DB->delete_records('workflow', array('id' => $id));
 
         return $result;
     }
@@ -167,7 +172,8 @@ class workflow {
      * @param stdClass $formdata - the data submitted from the form
      * @return bool false if an error occurs
      */
-    public function update_instance(stdClass $formdata) {
+    public function update_instance(stdClass $formdata)
+    {
         global $DB;
 
         // Add the database record.
@@ -187,16 +193,16 @@ class workflow {
 
         $result = $DB->update_record('workflow', $update);
 
-        if ($update->type==='assignment') {
-            $update_assignment = $DB->get_record('workflow_assignment', array('workflow'=>$formdata->instance), '*');
+        if ($update->type === 'assignment') {
+            $update_assignment = $DB->get_record('workflow_assignment', array('workflow' => $formdata->instance), '*');
             $update_assignment->assignment = $formdata->assignment_select;
             $result_assignment = $DB->update_record('workflow_assignment', $update_assignment);
-        } else if ($update->type==='quiz') {
-            $update_quiz = $DB->get_record('workflow_quiz', array('workflow'=>$formdata->instance), '*');
+        } else if ($update->type === 'quiz') {
+            $update_quiz = $DB->get_record('workflow_quiz', array('workflow' => $formdata->instance), '*');
             $update_quiz->quiz = $formdata->quiz_select;
             $result_quiz = $DB->update_record('workflow_quiz', $update_quiz);
-        } else if ($update->type==='other') {
-            $update_other = $DB->get_record('workflow_other', array('workflow'=>$formdata->instance), '*');
+        } else if ($update->type === 'other') {
+            $update_other = $DB->get_record('workflow_other', array('workflow' => $formdata->instance), '*');
             $result_other = $DB->update_record('workflow_other', $update_other);
         }
 
@@ -208,7 +214,8 @@ class workflow {
      *
      * @return mixed context|null The course context
      */
-    public function get_course_context() {
+    public function get_course_context()
+    {
         if (!$this->context && !$this->course) {
             throw new coding_exception('Improper use of the assignment class. ' .
                 'Cannot load the course context.');
@@ -225,7 +232,8 @@ class workflow {
      *
      * @return mixed stdClass|null The course
      */
-    public function get_course() {
+    public function get_course()
+    {
         global $DB;
 
         if ($this->course && is_object($this->course)) {
@@ -246,7 +254,8 @@ class workflow {
      *
      * @return cm_info|null The course module or null if not known
      */
-    public function get_course_module() {
+    public function get_course_module()
+    {
         if ($this->coursemodule) {
             return $this->coursemodule;
         }
@@ -268,7 +277,8 @@ class workflow {
      * @return stdClass The settings
      * @throws dml_exception
      */
-    public function get_default_instance() {
+    public function get_default_instance()
+    {
         global $DB;
         if (!$this->instance && $this->get_course_module()) {
             $params = array('id' => $this->get_course_module()->instance);
@@ -284,7 +294,8 @@ class workflow {
      * @param int|null $userid the id of the user to load the assign instance for.
      * @return stdClass The settings
      */
-    public function get_instance(int $userid = null) : stdClass {
+    public function get_instance(int $userid = null): stdClass
+    {
         global $USER;
         $userid = $userid ?? $USER->id;
 
@@ -307,8 +318,9 @@ class workflow {
      * @param int $userid the id of the user to calculate the properties for.
      * @return stdClass a new record having calculated properties.
      */
-    private function calculate_properties(\stdClass $record, int $userid) : \stdClass {
-        $record = clone ($record);
+    private function calculate_properties(\stdClass $record, int $userid): \stdClass
+    {
+        $record = clone($record);
 
         // Relative dates.
         if (!empty($record->duedate)) {
@@ -316,7 +328,7 @@ class workflow {
             $usercoursedates = course_get_course_dates_for_user_id($course, $userid);
             if ($usercoursedates['start']) {
                 $userprops = ['duedate' => $record->duedate + $usercoursedates['startoffset']];
-                $record = (object) array_merge((array) $record, (array) $userprops);
+                $record = (object)array_merge((array)$record, (array)$userprops);
             }
         }
         return $record;
@@ -327,7 +339,8 @@ class workflow {
      *
      * @return context
      */
-    public function get_context() {
+    public function get_context()
+    {
         return $this->context;
     }
 
@@ -336,7 +349,8 @@ class workflow {
      *
      * @since Moodle 3.2
      */
-    public function set_module_viewed() {
+    public function set_module_viewed()
+    {
         $completion = new completion_info($this->get_course());
         $completion->set_module_viewed($this->get_course_module());
 
@@ -358,7 +372,8 @@ class workflow {
      *
      * @return assign_renderer
      */
-    public function get_renderer() {
+    public function get_renderer()
+    {
         global $PAGE;
         if ($this->output) {
             return $this->output;
@@ -373,7 +388,8 @@ class workflow {
      *
      * @return string
      */
-    protected function view_footer() {
+    protected function view_footer()
+    {
         // When viewing the footer during PHPUNIT tests a set_state error is thrown.
         if (!PHPUNIT_TEST) {
             return $this->get_renderer()->render_footer();
@@ -392,8 +408,9 @@ class workflow {
      * @param array $args Optional arguments to pass to the view (instead of getting them from GET and POST).
      * @return string - The page output.
      */
-    public function view($action='', $args = array()) {
-        global $PAGE;
+    public function view($action = '', $args = array())
+    {
+        global $PAGE, $USER;
 
         $o = '';
         $mform = null;
@@ -404,10 +421,10 @@ class workflow {
         }
 
         // Handle form submissions first.
-        if ($action == 'TODO') {
+        if ($action == 'editsubmission') {
+            $o .= $this->view_editsubmission_page();
 
-        }
-        else {
+        } else {
             $o .= $this->view_submission_page();
         }
 
@@ -419,7 +436,8 @@ class workflow {
      *
      * @return string
      */
-    protected function view_submission_page() {
+    protected function view_submission_page()
+    {
         global $CFG, $DB, $USER, $PAGE;
 
         $instance = $this->get_instance();
@@ -468,4 +486,31 @@ class workflow {
 
         return $o;
     }
+
+
+    protected function view_editsubmission_page()
+    {
+        global $CFG, $DB, $USER, $PAGE;
+
+        $instance = $this->get_instance();
+
+        $o = '';
+        $postfix = '';
+
+        $o .= $this->get_renderer()->render(new assign_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $req_form = new block_requestformblock();
+        $form = $req_form->get_content();
+        $o .= $form->text;
+
+
+        $o .= $this->view_footer();
+
+        return $o;
+    }
+
 }
