@@ -62,11 +62,16 @@ class request_form extends moodleform {
 
         //Adding file upload field
         $mform->addElement('filemanager', 'attachments', get_string('evidence', 'workflow'), null,
-            array('subdirs' => 0, 'maxbytes' => 102400, 'areamaxbytes' => 10485760, 'maxfiles' => 50,
+            array('subdirs' => 0, 'maxbytes' => 10240000, 'areamaxbytes' => 10485760, 'maxfiles' => 50,
                 'accepted_types' => array('.doc', '.pdf', '.jpg', '.png', '.jpeg'), 'return_types'=> FILE_INTERNAL | FILE_EXTERNAL)); //TODO get file types form db
 
         $mform->addElement('date_time_selector', 'extend_to', get_string('extend_to', 'workflow'));
 
         $this->add_action_buttons();
+    }
+
+    public function validation($data, $files){
+        $errors = parent::validation($data, $files);
+        return $errors;
     }
 }

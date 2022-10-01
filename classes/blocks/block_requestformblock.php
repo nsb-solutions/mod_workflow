@@ -22,7 +22,8 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-//require_once(__DIR__ . './../../config.php');
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->dirroot . '/blocks/moodleblock.class.php');
 require_once($CFG->dirroot.'/mod/workflow/classes/form/request_form.php');
 
@@ -36,19 +37,28 @@ class block_requestformblock extends block_base{
 
         $this->content = new stdClass();
         $this->content->text = '';
+        $this->content->id = 0;
 
         $mform = new request_form();
 
         //Form processing and displaying is done here
         if ($mform->is_cancelled()) {
+
             //Handle form cancel operation, if cancel button is present on form
         } else if ($fromform = $mform->get_data()) {
-            //In this case you process validated data. $mform->get_data() returns data posted in form.
+
+            var_dump($fromform);
+            die();
+            $this->content->text = $fromform;
+
         } else {
             // this branch is executed if the form is submitted but the data doesn't validate and the form should be redisplayed
             // or on the first display of the form.
 
             //Set default data (if any)
+            var_dump($fromform);
+            die();
+
             $mform->set_data($toform);
 
             //displays the form

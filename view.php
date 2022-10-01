@@ -28,6 +28,7 @@ require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
 global  $DB, $CFG, $PAGE;
 // Course module id.
+
 $id = required_param('id', PARAM_INT);
 
 list ($course, $cm) = get_course_and_cm_from_cmid($id, 'workflow');
