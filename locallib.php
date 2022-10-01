@@ -424,6 +424,8 @@ class workflow {
         global $CFG, $DB, $USER, $PAGE;
 
         $instance = $this->get_instance();
+        $cm = $this->get_course_module();
+        $course = $this->get_course();
 
 //        $this->add_grade_notices();
 
@@ -469,6 +471,7 @@ class workflow {
         $requested = 0;
         $pending = 0;
 
+        // TODO: two hard coded values
         $summary = new workflow_grading_summary(
             $participants,
             $workflow->type,
@@ -481,10 +484,10 @@ class workflow {
             $pending,
             $lecturer->email,
             $instructor->email,
-            '0',
-            "1663711200",
+            $course->relativedatesmode,
+            $course->startdate,
             true,
-            '1'
+            $cm->visible
         );
 
         $o .= $this->get_renderer()->render($summary);
