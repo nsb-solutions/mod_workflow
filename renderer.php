@@ -127,27 +127,32 @@ class mod_workflow_renderer extends plugin_renderer_base {
         $cell2content = (!$summary->isvisible) ? get_string('yes') : get_string('no');
         $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
-        // Status.
-        if ($summary->teamsubmission) {
-            if ($summary->warnofungroupedusers === assign_grading_summary::WARN_GROUPS_REQUIRED) {
-                $o .= $this->output->notification(get_string('ungroupedusers', 'assign'));
-            } else if ($summary->warnofungroupedusers === assign_grading_summary::WARN_GROUPS_OPTIONAL) {
-                $o .= $this->output->notification(get_string('ungroupedusersoptional', 'assign'));
-            }
-            $cell1content = get_string('numberofteams', 'assign');
-        } else {
-            $cell1content = get_string('numberofparticipants', 'assign');
-        }
-
-        $cell2content = $summary->participantcount;
+        // Workflow type.
+        $cell1content = 'Workflow type';
+        $cell2content = $summary->type;
         $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
-        // Drafts count and dont show drafts count when using offline assignment.
-        if ($summary->submissiondraftsenabled && $summary->submissionsenabled) {
-            $cell1content = get_string('numberofdraftsubmissions', 'assign');
-            $cell2content = $summary->submissiondraftscount;
+        // Item name.
+        if (!empty($summary->name)) {
+            $cell1content = 'Assigned for';
+            $cell2content = $summary->name;
             $this->add_table_row_tuple($t, $cell1content, $cell2content);
         }
+
+        // Assigned lecturer.
+        $cell1content = 'Assigned lecturer';
+        $cell2content = $summary->lecturer;
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        // Assigned instructor.
+        $cell1content = 'Assigned instructor';
+        $cell2content = $summary->instructor;
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        // Status.
+        $cell1content = get_string('numberofparticipants', 'assign');
+        $cell2content = $summary->participantcount;
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
         // Submitted for grading.
         if ($summary->submissionsenabled) {
@@ -155,11 +160,11 @@ class mod_workflow_renderer extends plugin_renderer_base {
             $cell2content = $summary->submissionssubmittedcount;
             $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
-            if (!$summary->teamsubmission) {
-                $cell1content = 'Needs approval';
-                $cell2content = $summary->submissionsneedgradingcount;
-                $this->add_table_row_tuple($t, $cell1content, $cell2content);
-            }
+
+            $cell1content = 'Needs approval';
+            $cell2content = $summary->submissionsneedgradingcount;
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
         }
 
         $time = time();

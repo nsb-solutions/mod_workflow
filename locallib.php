@@ -440,14 +440,6 @@ class workflow {
             $this->get_course_module()->id,
             '', '', $postfix));
 
-        // Display plugin specific headers.
-//        $plugins = array_merge($this->get_submission_plugins(), $this->get_feedback_plugins());
-//        foreach ($plugins as $plugin) {
-//            if ($plugin->is_enabled() && $plugin->is_visible()) {
-//                $o .= $this->get_renderer()->render(new assign_plugin_header($plugin));
-//            }
-//        }
-
 //        if ($this->can_view_grades()) {
 //            // Group selector will only be displayed if necessary.
 //            $currenturl = new moodle_url('/mod/assign/view.php', array('id' => $this->get_course_module()->id));
@@ -463,8 +455,38 @@ class workflow {
 //            $o .= $this->view_student_summary($USER, true);
 //        }
 
-        $summary = new workflow_grading_summary(0, '0', 0, true, 0, 0, 1664661600, '8', 0,
-        '0', false, '0', "1663711200", true, '1');
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
+        $lecturer = $this->get_useremail($DB, $workflow->lecturer);
+        $instructor = $this->get_useremail($DB, $workflow->instructor);
+        $item = '';
+        if ($workflow->type==='assignment') {
+            $item = $this->get_assignmentname_form_workflow($DB, $workflow->id)->name;
+        } else if ($workflow->type==='quiz') {
+            $item = $this->get_quizname_form_workflow($DB, $workflow->id)->name;
+        }
+        $participants = 0;
+        $requested = 0;
+        $pending = 0;
+
+        $summary = new workflow_grading_summary(
+            $participants,
+            $workflow->type,
+            $item,
+            true,
+            $requested,
+            $workflow->cutoffdate,
+            $workflow->duedate,
+            $coursemodule_id,
+            $pending,
+            $lecturer->email,
+            $instructor->email,
+            '0',
+            "1663711200",
+            true,
+            '1'
+        );
+
         $o .= $this->get_renderer()->render($summary);
 
         $o .= $this->view_footer();
@@ -472,5 +494,51 @@ class workflow {
 //        \mod_assign\event\submission_status_viewed::create_from_assign($this)->trigger();
 
         return $o;
+    }
+
+    public function get_useremail($DB, $user_id) {
+        $user_db = $DB->get_record_sql("SELECT email
+                                    FROM mdl_user
+                                    WHERE id = ?;", [$user_id]);
+
+        return $user_db;
+    }
+
+    public function get_quizname_form_workflow($DB, $workflow_id) {
+        $quizid = $DB->get_record_sql("SELECT name
+                                    FROM mdl_quiz
+                                    WHERE id IN (
+                                        SELECT quiz
+                                        FROM mdl_workflow_quiz
+                                        WHERE workflow = ?
+                                    );
+                            ", [$workflow_id]);
+
+        return $quizid;
+    }
+
+     function get_assignmentname_form_workflow($DB, $workflow_id) {
+        $assignmentid = $DB->get_record_sql("SELECT name
+                                            FROM mdl_assign
+                                            WHERE id IN (
+                                                SELECT assignment
+                                                FROM mdl_workflow_assignment
+                                                WHERE workflow = ?
+                                            );
+                            ", [$workflow_id]);
+
+        return $assignmentid;
+    }
+
+    private function get_workflow($DB, $coursemodule_id) {
+        $workflow = $DB->get_record_sql("SELECT *
+                                        FROM mdl_workflow
+                                        WHERE id IN (
+                                        SELECT instance
+                                        FROM mdl_course_modules
+                                        WHERE id=? );
+                            ", [$coursemodule_id]);
+
+        return $workflow;
     }
 }

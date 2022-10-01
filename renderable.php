@@ -83,10 +83,10 @@ class workflow_header implements renderable {
 class workflow_grading_summary implements renderable {
     /** @var int participantcount - The number of users who can submit to this assignment */
     public $participantcount = 0;
-    /** @var bool submissiondraftsenabled - Allow submission drafts */
-    public $submissiondraftsenabled = false;
-    /** @var int submissiondraftscount - The number of submissions in draft status */
-    public $submissiondraftscount = 0;
+    /** @var string type - Type of workflow */
+    public $type = '';
+    /** @var string name - name of assigned assignment/quiz */
+    public $name = '';
     /** @var bool submissionsenabled - Allow submissions */
     public $submissionsenabled = false;
     /** @var int submissionssubmittedcount - The number of submissions in submitted status */
@@ -99,10 +99,10 @@ class workflow_grading_summary implements renderable {
     public $cutoffdate = 0;
     /** @var int coursemoduleid - The assignment course module id */
     public $coursemoduleid = 0;
-    /** @var boolean teamsubmission - Are team submissions enabled for this assignment */
-    public $teamsubmission = false;
-    /** @var boolean warnofungroupedusers - Do we need to warn people that there are users without groups */
-    public $warnofungroupedusers = false;
+    /** @var string lecturer - Lecturer name assigned to workflow */
+    public $lecturer = '';
+    /** @var string instructor - Instructor name assigned to workflow */
+    public $instructor = '';
     /** @var boolean relativedatesmode - Is the course a relative dates mode course or not */
     public $courserelativedatesmode = false;
     /** @var int coursestartdate - start date of the course as a unix timestamp*/
@@ -123,47 +123,47 @@ class workflow_grading_summary implements renderable {
      * constructor
      *
      * @param int $participantcount
-     * @param bool $submissiondraftsenabled
-     * @param int $submissiondraftscount
+     * @param string $type
+     * @param string $name
      * @param bool $submissionsenabled
      * @param int $submissionssubmittedcount
      * @param int $cutoffdate
      * @param int $duedate
      * @param int $coursemoduleid
      * @param int $submissionsneedgradingcount
-     * @param bool $teamsubmission
-     * @param string $warnofungroupedusers
+     * @param string $lecturer
+     * @param string $instructor
      * @param bool $courserelativedatesmode true if the course is using relative dates, false otherwise.
      * @param int $coursestartdate unix timestamp representation of the course start date.
      * @param bool $cangrade
      * @param bool $isvisible
      */
     public function __construct($participantcount,
-                                $submissiondraftsenabled,
-                                $submissiondraftscount,
+                                $type,
+                                $name,
                                 $submissionsenabled,
                                 $submissionssubmittedcount,
                                 $cutoffdate,
                                 $duedate,
                                 $coursemoduleid,
                                 $submissionsneedgradingcount,
-                                $teamsubmission,
-                                $warnofungroupedusers,
+                                $lecturer,
+                                $instructor,
                                 $courserelativedatesmode,
                                 $coursestartdate,
                                 $cangrade = true,
                                 $isvisible = true) {
         $this->participantcount = $participantcount;
-        $this->submissiondraftsenabled = $submissiondraftsenabled;
-        $this->submissiondraftscount = $submissiondraftscount;
+        $this->type = $type;
+        $this->name = $name;
         $this->submissionsenabled = $submissionsenabled;
         $this->submissionssubmittedcount = $submissionssubmittedcount;
         $this->duedate = $duedate;
         $this->cutoffdate = $cutoffdate;
         $this->coursemoduleid = $coursemoduleid;
         $this->submissionsneedgradingcount = $submissionsneedgradingcount;
-        $this->teamsubmission = $teamsubmission;
-        $this->warnofungroupedusers = $warnofungroupedusers;
+        $this->lecturer = $lecturer;
+        $this->instructor = $instructor;
         $this->courserelativedatesmode = $courserelativedatesmode;
         $this->coursestartdate = $coursestartdate;
         $this->cangrade = $cangrade;
