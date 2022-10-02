@@ -145,6 +145,10 @@ class mod_workflow_mod_form extends moodleform_mod {
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         $mform->addHelpButton('name', 'workflowname', 'workflow');
 
+        $mform->addRule('workflow_type_select', null, 'required', null, 'client');
+        $mform->addRule('lecturer_select', null, 'required', null, 'client');
+        $mform->addRule('instructor_select', null, 'required', null, 'client');
+
         $mform->addElement('header', 'availability', get_string('availability', 'assign'));
         $mform->setExpanded('availability', true);
 
@@ -166,6 +170,70 @@ class mod_workflow_mod_form extends moodleform_mod {
 
         // Add standard buttons.
         $this->add_action_buttons();
+    }
+
+    /**
+     * Perform minimal validation on the settings form
+     * @param array $data
+     * @param array $files
+     */
+    public function validation($data, $files) {
+        global $DB;
+
+        $errors = parent::validation($data, $files);
+
+        // Duedate validation
+        if (!empty($data['allowsubmissionsfromdate']) && !empty($data['duedate'])) {
+            if ($data['duedate'] < $data['allowsubmissionsfromdate']) {
+                $errors['duedate'] = get_string('duedatevalidation', 'workflow');
+            }
+        }
+
+        // Cutoff date validation
+        if (!empty($data['cutoffdate']) && !empty($data['duedate'])) {
+            if ($data['cutoffdate'] < $data['duedate'] ) {
+                $errors['cutoffdate'] = get_string('cutoffdatevalidation', 'workflow');
+            }
+        }
+
+        // Cutoff date from date validation
+        if (!empty($data['allowsubmissionsfromdate']) && !empty($data['cutoffdate'])) {
+            if ($data['cutoffdate'] < $data['allowsubmissionsfromdate']) {
+                $errors['cutoffdate'] = get_string('cutoffdatefromdatevalidation', 'workflow');
+            }
+        }
+
+        // Workflow type select validation
+        $workflow_types = array ('assignment'  => get_string('assignment', 'workflow'),
+            'quiz' => get_string('quiz', 'workflow'),
+            'other'   => get_string('other', 'workflow'));
+
+        if (!in_array($data['workflow_type_select'], array_keys($workflow_types))) {
+            $errors['workflow_type_select'] = get_string('workflowtypeselectvalidation', 'workflow');
+        }
+
+        // Check selected item valid
+        if ($data['workflow_type_select']==='assignment') {
+            if (!isset($data['assignment_select']) || empty($data['assignment_select'])) {
+                $errors['assignment_select'] = get_string('assignmentselectvalidation', 'workflow');
+            }
+        } else if ($data['workflow_type_select']==='quiz') {
+            if (!isset($data['quiz_select']) || empty($data['quiz_select'])) {
+                $errors['quiz_select'] = get_string('quizselectvalidation', 'workflow');
+            }
+        }
+
+        // Check lecturer valid
+        if (!isset($data['lecturer_select']) || empty($data['lecturer_select'])) {
+            $errors['lecturer_select'] = get_string('lecturerselectvalidation', 'workflow');
+        }
+
+        // Check instructor valid
+        if (!isset($data['instructor_select']) || empty($data['instructor_select'])) {
+            $errors['instructor_select'] = get_string('instructorselectvalidation', 'workflow');
+        }
+
+        return $errors;
     }
 
     private function get_instructors($DB, $course_id) {

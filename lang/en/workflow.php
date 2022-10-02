@@ -37,3 +37,12 @@ $string['quiz'] = 'Quiz';
 $string['other'] = 'Other';
 $string['workflowtype'] = 'Workflow type';
 $string['workflowtype_help'] = 'Select workflow type here';
+
+$string['duedatevalidation'] = 'Due date cannot be earlier than the allow submissions from date.';
+$string['cutoffdatevalidation'] = 'Cut-off date cannot be earlier than the due date.';
+$string['cutoffdatefromdatevalidation'] = 'Cut-off date cannot be earlier than the allow submissions from date.';
+$string['workflowtypeselectvalidation'] = 'Please select a valid workflow type.';
+$string['assignmentselectvalidation'] = 'An assignment must be selected.';
+$string['quizselectvalidation'] = 'A quiz must be selected.';
+$string['lecturerselectvalidation'] = 'A lecturer must be selected.';
+$string['instructorselectvalidation'] = 'An instructor must be selected.';
