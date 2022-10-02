@@ -64,6 +64,12 @@ class workflow {
     /** @var array Array of error messages encountered during the execution of workflow related operations. */
     private $errors = array();
 
+    /** @var bool whether to exclude users with inactive enrolment */
+    private $showonlyactiveenrol = null;
+
+    /** @var array cached list of participants for this workflow. The cache key will be group, showactive and the context id */
+    private $participants = array();
+
     /**
      * Constructor for the base workflow class.
      *
@@ -333,6 +339,90 @@ class workflow {
     }
 
     /**
+     * Check is only active users in course should be shown.
+     *
+     * @return bool true if only active users should be shown.
+     */
+    public function show_only_active_users() {
+        global $CFG;
+
+        if (is_null($this->showonlyactiveenrol)) {
+            $defaultgradeshowactiveenrol = !empty($CFG->grade_report_showonlyactiveenrol);
+            $this->showonlyactiveenrol = get_user_preferences('grade_report_showonlyactiveenrol', $defaultgradeshowactiveenrol);
+
+            if (!is_null($this->context)) {
+                $this->showonlyactiveenrol = $this->showonlyactiveenrol ||
+                    !has_capability('moodle/course:viewsuspendedusers', $this->context);
+            }
+        }
+        return $this->showonlyactiveenrol;
+    }
+
+    /**
+     * Load a list of users enrolled in the current course with the specified permission and group.
+     * 0 for no group.
+     * Apply any current sort filters from the grading table.
+     *
+     * @param int $currentgroup
+     * @param bool $idsonly
+     * @param bool $tablesort
+     * @return array List of user records
+     */
+    public function list_participants($currentgroup, $idsonly) {
+        global $DB, $USER;
+
+        // Get the last known sort order for the grading table.
+
+        if (empty($currentgroup)) {
+            $currentgroup = 0;
+        }
+
+        $key = $this->context->id . '-' . $currentgroup . '-' . $this->show_only_active_users();
+        if (!isset($this->participants[$key])) {
+            list($esql, $params) = get_enrolled_sql($this->context, 'mod/assign:submit', $currentgroup,
+                $this->show_only_active_users());
+
+            $fields = 'u.*';
+            $orderby = 'u.lastname, u.firstname, u.id';
+
+            $sql = "SELECT $fields
+                      FROM {user} u
+                      JOIN ($esql) je ON je.id = u.id
+                     WHERE u.deleted = 0
+                  ORDER BY $orderby";
+
+            $users = $DB->get_records_sql($sql, $params);
+
+            $cm = $this->get_course_module();
+            $info = new \core_availability\info_module($cm);
+            $users = $info->filter_user_list($users);
+
+            $this->participants[$key] = $users;
+        }
+
+        if ($idsonly) {
+            $idslist = array();
+            foreach ($this->participants[$key] as $id => $user) {
+                $idslist[$id] = new stdClass();
+                $idslist[$id]->id = $id;
+            }
+            return $idslist;
+        }
+        return $this->participants[$key];
+    }
+
+    /**
+     * Load a count of active users enrolled in the current course with the specified permission and group.
+     * 0 for no group.
+     *
+     * @param int $currentgroup
+     * @return int number of matching users
+     */
+    public function count_participants($currentgroup) {
+        return count($this->list_participants($currentgroup, true));
+    }
+
+    /**
      * Update the module completion status (set it viewed) and trigger module viewed event.
      *
      * @since Moodle 3.2
@@ -467,13 +557,13 @@ class workflow {
         } else if ($workflow->type==='quiz') {
             $item = $this->get_quizname_form_workflow($DB, $workflow->id)->name;
         }
-        $participants = 0;
+        $countparticipants = $this->count_participants(false);
         $requested = 0;
         $pending = 0;
 
         // TODO: two hard coded values
         $summary = new workflow_grading_summary(
-            $participants,
+            $countparticipants,
             $workflow->type,
             $item,
             true,
