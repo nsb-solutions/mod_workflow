@@ -35,8 +35,7 @@ require_once($CFG->dirroot . '/mod/workflow/renderable.php');
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-class workflow
-{
+class workflow {
     /** @var stdClass the workflow record that contains the global settings for this workflow instance */
     private $instance;
 
@@ -65,6 +64,12 @@ class workflow
     /** @var array Array of error messages encountered during the execution of workflow related operations. */
     private $errors = array();
 
+    /** @var bool whether to exclude users with inactive enrolment */
+    private $showonlyactiveenrol = null;
+
+    /** @var array cached list of participants for this workflow. The cache key will be group, showactive and the context id */
+    private $participants = array();
+
     /**
      * Constructor for the base workflow class.
      *
@@ -80,8 +85,7 @@ class workflow
      *                      otherwise this class will load one from the context as required.
      */
 
-    public function __construct($coursemodulecontext, $coursemodule, $course)
-    {
+    public function __construct($coursemodulecontext, $coursemodule, $course) {
         $this->context = $coursemodulecontext;
         $this->course = $course;
 
@@ -100,8 +104,7 @@ class workflow
      *             when upgrading an old assignment to a new one (the plugins get called manually)
      * @return mixed false if an error occurs or the int id of the new instance
      */
-    public function add_instance(stdClass $formdata)
-    {
+    public function add_instance(stdClass $formdata) {
         global $DB;
 
         // Add the database record.
@@ -121,17 +124,17 @@ class workflow
 
         $returnid = $DB->insert_record('workflow', $update);
 
-        if ($update->type === 'assignment') {
+        if ($update->type==='assignment') {
             $update_assignment = new stdClass();
             $update_assignment->workflow = $returnid;
             $update_assignment->assignment = $formdata->assignment_select;
             $returnid_assignment = $DB->insert_record('workflow_assignment', $update_assignment);
-        } else if ($update->type === 'quiz') {
+        } else if ($update->type==='quiz') {
             $update_quiz = new stdClass();
             $update_quiz->workflow = $returnid;
             $update_quiz->quiz = $formdata->quiz_select;
             $returnid_quiz = $DB->insert_record('workflow_quiz', $update_quiz);
-        } else if ($update->type === 'other') {
+        } else if ($update->type==='other') {
             $update_other = new stdClass();
             $update_other->workflow = $returnid;
             $returnid_other = $DB->insert_record('workflow_other', $update_other);
@@ -145,23 +148,22 @@ class workflow
      *
      * @return bool false if an error occurs
      */
-    public function delete_instance($id)
-    {
+    public function delete_instance($id) {
         global $DB;
         $result = true;
 
-        $workflow_record = $DB->get_record('workflow', array('id' => $id), 'type');
+        $workflow_record = $DB->get_record('workflow', array('id'=>$id), 'type');
 
-        if ($workflow_record->type === 'assignment') {
-            $DB->delete_records('workflow_assignment', array('workflow' => $id));
-        } else if ($workflow_record->type === 'quiz') {
-            $DB->delete_records('workflow_quiz', array('workflow' => $id));
-        } else if ($workflow_record->type === 'other') {
-            $DB->delete_records('workflow_other', array('workflow' => $id));
+        if ($workflow_record->type==='assignment') {
+            $DB->delete_records('workflow_assignment', array('workflow'=>$id));
+        } else if ($workflow_record->type==='quiz') {
+            $DB->delete_records('workflow_quiz', array('workflow'=>$id));
+        } else if ($workflow_record->type==='other') {
+            $DB->delete_records('workflow_other', array('workflow'=>$id));
         }
 
         // Delete the instance.
-        $DB->delete_records('workflow', array('id' => $id));
+        $DB->delete_records('workflow', array('id'=>$id));
 
         return $result;
     }
@@ -172,8 +174,7 @@ class workflow
      * @param stdClass $formdata - the data submitted from the form
      * @return bool false if an error occurs
      */
-    public function update_instance(stdClass $formdata)
-    {
+    public function update_instance(stdClass $formdata) {
         global $DB;
 
         // Add the database record.
@@ -193,16 +194,16 @@ class workflow
 
         $result = $DB->update_record('workflow', $update);
 
-        if ($update->type === 'assignment') {
-            $update_assignment = $DB->get_record('workflow_assignment', array('workflow' => $formdata->instance), '*');
+        if ($update->type==='assignment') {
+            $update_assignment = $DB->get_record('workflow_assignment', array('workflow'=>$formdata->instance), '*');
             $update_assignment->assignment = $formdata->assignment_select;
             $result_assignment = $DB->update_record('workflow_assignment', $update_assignment);
-        } else if ($update->type === 'quiz') {
-            $update_quiz = $DB->get_record('workflow_quiz', array('workflow' => $formdata->instance), '*');
+        } else if ($update->type==='quiz') {
+            $update_quiz = $DB->get_record('workflow_quiz', array('workflow'=>$formdata->instance), '*');
             $update_quiz->quiz = $formdata->quiz_select;
             $result_quiz = $DB->update_record('workflow_quiz', $update_quiz);
-        } else if ($update->type === 'other') {
-            $update_other = $DB->get_record('workflow_other', array('workflow' => $formdata->instance), '*');
+        } else if ($update->type==='other') {
+            $update_other = $DB->get_record('workflow_other', array('workflow'=>$formdata->instance), '*');
             $result_other = $DB->update_record('workflow_other', $update_other);
         }
 
@@ -214,8 +215,7 @@ class workflow
      *
      * @return mixed context|null The course context
      */
-    public function get_course_context()
-    {
+    public function get_course_context() {
         if (!$this->context && !$this->course) {
             throw new coding_exception('Improper use of the assignment class. ' .
                 'Cannot load the course context.');
@@ -232,8 +232,7 @@ class workflow
      *
      * @return mixed stdClass|null The course
      */
-    public function get_course()
-    {
+    public function get_course() {
         global $DB;
 
         if ($this->course && is_object($this->course)) {
@@ -254,8 +253,7 @@ class workflow
      *
      * @return cm_info|null The course module or null if not known
      */
-    public function get_course_module()
-    {
+    public function get_course_module() {
         if ($this->coursemodule) {
             return $this->coursemodule;
         }
@@ -285,8 +283,7 @@ class workflow
      * @return stdClass The settings
      * @throws dml_exception
      */
-    public function get_default_instance()
-    {
+    public function get_default_instance() {
         global $DB;
         if (!$this->instance && $this->get_course_module()) {
             $params = array('id' => $this->get_course_module()->instance);
@@ -302,8 +299,7 @@ class workflow
      * @param int|null $userid the id of the user to load the assign instance for.
      * @return stdClass The settings
      */
-    public function get_instance(int $userid = null): stdClass
-    {
+    public function get_instance(int $userid = null) : stdClass {
         global $USER;
         $userid = $userid ?? $USER->id;
 
@@ -326,9 +322,8 @@ class workflow
      * @param int $userid the id of the user to calculate the properties for.
      * @return stdClass a new record having calculated properties.
      */
-    private function calculate_properties(\stdClass $record, int $userid): \stdClass
-    {
-        $record = clone($record);
+    private function calculate_properties(\stdClass $record, int $userid) : \stdClass {
+        $record = clone ($record);
 
         // Relative dates.
         if (!empty($record->duedate)) {
@@ -336,7 +331,7 @@ class workflow
             $usercoursedates = course_get_course_dates_for_user_id($course, $userid);
             if ($usercoursedates['start']) {
                 $userprops = ['duedate' => $record->duedate + $usercoursedates['startoffset']];
-                $record = (object)array_merge((array)$record, (array)$userprops);
+                $record = (object) array_merge((array) $record, (array) $userprops);
             }
         }
         return $record;
@@ -347,9 +342,92 @@ class workflow
      *
      * @return context
      */
-    public function get_context()
-    {
+    public function get_context() {
         return $this->context;
+    }
+
+    /**
+     * Check is only active users in course should be shown.
+     *
+     * @return bool true if only active users should be shown.
+     */
+    public function show_only_active_users() {
+        global $CFG;
+
+        if (is_null($this->showonlyactiveenrol)) {
+            $defaultgradeshowactiveenrol = !empty($CFG->grade_report_showonlyactiveenrol);
+            $this->showonlyactiveenrol = get_user_preferences('grade_report_showonlyactiveenrol', $defaultgradeshowactiveenrol);
+
+            if (!is_null($this->context)) {
+                $this->showonlyactiveenrol = $this->showonlyactiveenrol ||
+                    !has_capability('moodle/course:viewsuspendedusers', $this->context);
+            }
+        }
+        return $this->showonlyactiveenrol;
+    }
+
+    /**
+     * Load a list of users enrolled in the current course with the specified permission and group.
+     * 0 for no group.
+     * Apply any current sort filters from the grading table.
+     *
+     * @param int $currentgroup
+     * @param bool $idsonly
+     * @param bool $tablesort
+     * @return array List of user records
+     */
+    public function list_participants($currentgroup, $idsonly) {
+        global $DB, $USER;
+
+        // Get the last known sort order for the grading table.
+
+        if (empty($currentgroup)) {
+            $currentgroup = 0;
+        }
+
+        $key = $this->context->id . '-' . $currentgroup . '-' . $this->show_only_active_users();
+        if (!isset($this->participants[$key])) {
+            list($esql, $params) = get_enrolled_sql($this->context, 'mod/assign:submit', $currentgroup,
+                $this->show_only_active_users());
+
+            $fields = 'u.*';
+            $orderby = 'u.lastname, u.firstname, u.id';
+
+            $sql = "SELECT $fields
+                      FROM {user} u
+                      JOIN ($esql) je ON je.id = u.id
+                     WHERE u.deleted = 0
+                  ORDER BY $orderby";
+
+            $users = $DB->get_records_sql($sql, $params);
+
+            $cm = $this->get_course_module();
+            $info = new \core_availability\info_module($cm);
+            $users = $info->filter_user_list($users);
+
+            $this->participants[$key] = $users;
+        }
+
+        if ($idsonly) {
+            $idslist = array();
+            foreach ($this->participants[$key] as $id => $user) {
+                $idslist[$id] = new stdClass();
+                $idslist[$id]->id = $id;
+            }
+            return $idslist;
+        }
+        return $this->participants[$key];
+    }
+
+    /**
+     * Load a count of active users enrolled in the current course with the specified permission and group.
+     * 0 for no group.
+     *
+     * @param int $currentgroup
+     * @return int number of matching users
+     */
+    public function count_participants($currentgroup) {
+        return count($this->list_participants($currentgroup, true));
     }
 
     /**
@@ -357,8 +435,7 @@ class workflow
      *
      * @since Moodle 3.2
      */
-    public function set_module_viewed()
-    {
+    public function set_module_viewed() {
         $completion = new completion_info($this->get_course());
         $completion->set_module_viewed($this->get_course_module());
 
@@ -380,8 +457,7 @@ class workflow
      *
      * @return assign_renderer
      */
-    public function get_renderer()
-    {
+    public function get_renderer() {
         global $PAGE;
         if ($this->output) {
             return $this->output;
@@ -396,8 +472,7 @@ class workflow
      *
      * @return string
      */
-    protected function view_footer()
-    {
+    protected function view_footer() {
         // When viewing the footer during PHPUNIT tests a set_state error is thrown.
         if (!PHPUNIT_TEST) {
             return $this->get_renderer()->render_footer();
@@ -427,6 +502,7 @@ class workflow
         if (!empty($this->get_course_module()->id)) {
             $nextpageparams['id'] = $this->get_course_module()->id;
         }
+
         // Handle form submissions first.
         if($action == 'savesubmission') {
             $this->process_save_submission();
@@ -470,8 +546,7 @@ class workflow
      *
      * @return string
      */
-    protected function view_submission_page()
-    {
+    protected function view_submission_page() {
         global $CFG, $DB, $USER, $PAGE;
 
         $instance = $this->get_instance();
@@ -506,27 +581,38 @@ class workflow
             $participants = 0;
             $requested = 0;
             $pending = 0;
+        $lecturer = $this->get_useremail($DB, $workflow->lecturer);
+        $instructor = $this->get_useremail($DB, $workflow->instructor);
+        $item = '';
+        if ($workflow->type==='assignment') {
+            $item = $this->get_assignmentname_form_workflow($DB, $workflow->id)->name;
+        } else if ($workflow->type==='quiz') {
+            $item = $this->get_quizname_form_workflow($DB, $workflow->id)->name;
+        }
+        $countparticipants = $this->count_participants(false);
+        $requested = 0;
+        $pending = 0;
 
-            // TODO: two hard coded values
-            $summary = new workflow_grading_summary(
-                $participants,
-                $workflow->type,
-                $item,
-                true,
-                $requested,
-                $workflow->cutoffdate,
-                $workflow->duedate,
-                $coursemodule_id,
-                $pending,
-                $lecturer->email,
-                $instructor->email,
-                $course->relativedatesmode,
-                $course->startdate,
-                true,
-                $cm->visible
-            );
+        // TODO: two hard coded values
+        $summary = new workflow_grading_summary(
+            $countparticipants,
+            $workflow->type,
+            $item,
+            true,
+            $requested,
+            $workflow->cutoffdate,
+            $workflow->duedate,
+            $coursemodule_id,
+            $pending,
+            $lecturer->email,
+            $instructor->email,
+            $course->relativedatesmode,
+            $course->startdate,
+            true,
+            $cm->visible
+        );
 
-            $o .= $this->get_renderer()->render($summary);
+        $o .= $this->get_renderer()->render($summary);
 
         }
 
@@ -574,8 +660,6 @@ class workflow
 
         return $user_db;
     }
-
-
 
     public function get_quizname_form_workflow($DB, $workflow_id) {
         $quizid = $DB->get_record_sql("SELECT name
