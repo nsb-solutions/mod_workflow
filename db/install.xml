@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/workflow/db" VERSION="20220924" COMMENT="XMLDB file for Moodle mod_workflow"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="workflow" COMMENT="Stores the workflow activity module instances.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the course this activity is part of."/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The name of the activity module workflow instance"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The description of the workflow. This field is used by feature MOD_INTRO."/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The format of the description field of the workflow. This field is used by feature MOD_INTRO."/>
+        <FIELD NAME="type" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="none" SEQUENCE="false" COMMENT="The type of the activity module workflow instance"/>
+        <FIELD NAME="lecturer" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the lecturer this activity is part of."/>
+        <FIELD NAME="instructor" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the course this activity is part of."/>
+        <FIELD NAME="allowsubmissionsfromdate" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If set, submissions will only be accepted after this date."/>
+        <FIELD NAME="duedate" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The due date for the assignment. Displayed to students."/>
+        <FIELD NAME="cutoffdate" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The final date after which submissions will no longer be accepted for this assignment without an extensions."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp of when the instance was added to the course."/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp of when the instance was last modified."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+        <KEY NAME="fk_lecturer" TYPE="foreign" FIELDS="lecturer" REFTABLE="user" REFFIELDS="id" COMMENT="The instance of user this workflow assigned as lecturer."/>
+        <KEY NAME="fk_instructor" TYPE="foreign" FIELDS="instructor" REFTABLE="user" REFFIELDS="id" COMMENT="The instance of user this workflow assigned as instructor."/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="workflow_other" COMMENT="Stores the workflow type other activity module object instances.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="workflow" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the workflow this request is part of."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_workflow" TYPE="foreign" FIELDS="workflow" REFTABLE="workflow" REFFIELDS="id" COMMENT="ID of the workflow this workflow type is part of."/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="workflow_assignment" COMMENT="Stores the workflow type assignment activity module object instances.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="workflow" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the workflow this request is part of."/>
+        <FIELD NAME="assignment" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the assignment this request is part of."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_workflow" TYPE="foreign" FIELDS="workflow" REFTABLE="workflow" REFFIELDS="id" COMMENT="ID of the workflow this workflow type is part of."/>
+        <KEY NAME="fk_assignment" TYPE="foreign" FIELDS="assignment" REFTABLE="assign" REFFIELDS="id" COMMENT="ID of the assignment this workflow type is part of."/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="workflow_quiz" COMMENT="Stores the workflow type quiz activity module object instances.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="workflow" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the workflow this request is part of."/>
+        <FIELD NAME="quiz" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the quiz this request is part of."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_workflow" TYPE="foreign" FIELDS="workflow" REFTABLE="workflow" REFFIELDS="id" COMMENT="ID of the workflow this workflow type is part of."/>
+        <KEY NAME="fk_quiz" TYPE="foreign" FIELDS="quiz" REFTABLE="quiz" REFFIELDS="id" COMMENT="ID of the quiz this workflow type is part of."/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="workflow_request" COMMENT="Stores the workflow activity module request object instances.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="workflow" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the workflow this request is part of."/>
+        <FIELD NAME="student" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the student owning this request."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_workflow" TYPE="foreign" FIELDS="workflow" REFTABLE="workflow" REFFIELDS="id" COMMENT="ID of the workflow this request is part of."/>
+        <KEY NAME="fk_student" TYPE="foreign" FIELDS="student" REFTABLE="user" REFFIELDS="id" COMMENT="The instance of user owning this request"/>
+      </KEYS>
+    </TABLE>
+  </TABLES>
+</XMLDB>
