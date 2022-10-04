@@ -39,6 +39,8 @@ class request_form extends moodleform {
         $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
 
         $mform = $this->_form;
+        $cmid = $this->_customdata;
+        $coursemoduleid =  $cmid['cmid'];
 
         //Adding the select reason field
         $reasons = array(
@@ -67,7 +69,13 @@ class request_form extends moodleform {
 
         $mform->addElement('date_time_selector', 'extend_to', get_string('extend_to', 'workflow'));
 
+        $mform->addElement('hidden', 'id', $coursemoduleid);
+        $mform->setType('id', PARAM_INT);
+        $mform->addElement('hidden', 'action', 'savesubmission');
+        $mform->setType('action', PARAM_ALPHA);
+
         $this->add_action_buttons();
+
     }
 
     public function validation($data, $files){

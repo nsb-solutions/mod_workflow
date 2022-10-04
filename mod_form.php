@@ -59,6 +59,12 @@ class mod_workflow_mod_form extends moodleform_mod {
         // Load previous form if exists
         if ($coursemodule_id) {
             $prev_form = $this->get_prev_form($DB, $coursemodule_id);
+
+            if ($prev_form->type==='quiz') {
+                $quizid = $this->get_quizid_form_workflow($DB, $prev_form->id);
+            } else if ($prev_form->type==='assignment') {
+                $assignmentid = $this->get_assignmentid_form_workflow($DB, $prev_form->id);
+            }
         }
 
         // Load lecturers from database
@@ -99,6 +105,7 @@ class mod_workflow_mod_form extends moodleform_mod {
         $mform->addHelpButton('workflow_type_select', 'workflowtype', 'workflow');
         if (isset($prev_form)) {
             $workflow_type_select->setSelected($prev_form->type);
+            $mform->freeze('workflow_type_select');
         }
 
         // Adding the standard "intro" and "introformat" fields.
@@ -121,15 +128,16 @@ class mod_workflow_mod_form extends moodleform_mod {
         // Select assignments
         $assignment_select = $mform->addElement('select', 'assignment_select', 'Select assignment', $assignments);
         $mform->addHelpButton('assignment_select', 'workflowtype', 'workflow');
-        if (isset($prev_form) && $prev_form->type==='assignment') {
-            $assignment_select->setSelected('assignment');
+        if (isset($assignmentid)) {
+            $assignment_select->setSelected($assignmentid->assignment);
         }
 
         // Select quiz
         $quiz_select = $mform->addElement('select', 'quiz_select', 'Select quiz', $quizzes);
         $mform->addHelpButton('quiz_select', 'workflowtype', 'workflow');
-        if (isset($prev_form) && $prev_form->type==='quiz') {
-            $quiz_select->setSelected('quiz');
+
+        if (isset($quizid)) {
+            $quiz_select->setSelected($quizid->quiz);
         }
 
 
@@ -238,5 +246,23 @@ class mod_workflow_mod_form extends moodleform_mod {
                             ", [$coursemodule_id]);
 
         return $prevform_db;
+    }
+
+    private function get_quizid_form_workflow($DB, $workflow_id) {
+        $quizid = $DB->get_record_sql("SELECT quiz
+                                        FROM mdl_workflow_quiz
+                                        WHERE workflow = ?;
+                            ", [$workflow_id]);
+
+        return $quizid;
+    }
+
+    private function get_assignmentid_form_workflow($DB, $workflow_id) {
+        $assignmentid = $DB->get_record_sql("SELECT assignment
+                                        FROM mdl_workflow_assignment
+                                        WHERE workflow = ?;
+                            ", [$workflow_id]);
+
+        return $assignmentid;
     }
 }

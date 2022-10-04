@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/workflow/mod_form.php');
-require_once($CFG->dirroot . '/mod/workflow/classes/blocks/block_requestformblock.php');
+require_once($CFG->dirroot . '/mod/workflow/renderable.php');
 
 /**
  * Module instance settings form.
@@ -272,6 +272,14 @@ class workflow
     }
 
     /**
+     * Get error messages.
+     *
+     * @return array The array of error messages
+     */
+    protected function get_error_messages(): array {
+        return $this->errors;
+    }
+    /**
      * Get the settings for the current instance of this workflow.
      *
      * @return stdClass The settings
@@ -378,7 +386,7 @@ class workflow
         if ($this->output) {
             return $this->output;
         }
-        $this->output = $PAGE->get_renderer('mod_assign', null, RENDERER_TARGET_GENERAL);
+        $this->output = $PAGE->get_renderer('mod_workflow', null, RENDERER_TARGET_GENERAL);
         return $this->output;
     }
 
@@ -419,12 +427,38 @@ class workflow
         if (!empty($this->get_course_module()->id)) {
             $nextpageparams['id'] = $this->get_course_module()->id;
         }
-
         // Handle form submissions first.
-        if ($action == 'editsubmission') {
-            $o .= $this->view_editsubmission_page();
+        if($action == 'savesubmission') {
+            $this->process_save_submission();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
+        }
 
-        } else {
+        elseif ($action == 'removesubmissionconfirm'){
+            $this->process_remove_submission();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
+        }
+        if ($action == 'redirect') {
+            $nextpageurl = new moodle_url('/mod/workflow/view.php', $nextpageparams);
+            $messages = '';
+            $messagetype = \core\output\notification::NOTIFY_INFO;
+            $errors = $this->get_error_messages();
+            if (!empty($errors)) {
+                $messages = html_writer::alist($errors, ['class' => 'mb-1 mt-1']);
+                $messagetype = \core\output\notification::NOTIFY_ERROR;
+            }
+            redirect($nextpageurl, $messages, null, $messagetype);
+            return;
+        }
+        elseif($action == 'removesubmission'){
+            $o .= $this->view_remove_submission_confirm();
+        }
+        elseif ($action == 'editsubmission') {
+            $o .= $this->view_editsubmission_page();
+        }
+        // Now show the right view page.
+        else {
             $o .= $this->view_submission_page();
         }
 
@@ -441,76 +475,313 @@ class workflow
         global $CFG, $DB, $USER, $PAGE;
 
         $instance = $this->get_instance();
-
-//        $this->add_grade_notices();
+        $cm = $this->get_course_module();
+        $course = $this->get_course();
 
         $o = '';
 
         $postfix = '';
-//        if ($this->has_visible_attachments()) {
-//            $postfix = $this->render_area_files('mod_assign', ASSIGN_INTROATTACHMENT_FILEAREA, 0);
-//        }
 
-        $o .= $this->get_renderer()->render(new assign_header($instance,
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
             $this->get_context(),
             true,
             $this->get_course_module()->id,
             '', '', $postfix));
 
-        // Display plugin specific headers.
-//        $plugins = array_merge($this->get_submission_plugins(), $this->get_feedback_plugins());
-//        foreach ($plugins as $plugin) {
-//            if ($plugin->is_enabled() && $plugin->is_visible()) {
-//                $o .= $this->get_renderer()->render(new assign_plugin_header($plugin));
-//            }
-//        }
 
-//        if ($this->can_view_grades()) {
-//            // Group selector will only be displayed if necessary.
-//            $currenturl = new moodle_url('/mod/assign/view.php', array('id' => $this->get_course_module()->id));
-//            $o .= groups_print_activity_menu($this->get_course_module(), $currenturl->out(), true);
-//
-//            $summary = $this->get_assign_grading_summary_renderable();
-//            $o .= $this->get_renderer()->render($summary);
-//        }
-//        $grade = $this->get_user_grade($USER->id, false);
-//        $submission = $this->get_user_submission($USER->id, false);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+        $context = context_module::instance($coursemodule_id);
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
 
-//        if ($this->can_view_submission($USER->id)) {
-//            $o .= $this->view_student_summary($USER, true);
-//        }
+        if(!has_capability('mod/workflow:addrequest', $context)) {
+
+            $lecturer = $this->get_useremail($DB, $workflow->lecturer);
+            $instructor = $this->get_useremail($DB, $workflow->instructor);
+            $item = '';
+            if ($workflow->type === 'assignment') {
+                $item = $this->get_assignmentname_form_workflow($DB, $workflow->id)->name;
+            } else if ($workflow->type === 'quiz') {
+                $item = $this->get_quizname_form_workflow($DB, $workflow->id)->name;
+            }
+            $participants = 0;
+            $requested = 0;
+            $pending = 0;
+
+            // TODO: two hard coded values
+            $summary = new workflow_grading_summary(
+                $participants,
+                $workflow->type,
+                $item,
+                true,
+                $requested,
+                $workflow->cutoffdate,
+                $workflow->duedate,
+                $coursemodule_id,
+                $pending,
+                $lecturer->email,
+                $instructor->email,
+                $course->relativedatesmode,
+                $course->startdate,
+                true,
+                $cm->visible
+            );
+
+            $o .= $this->get_renderer()->render($summary);
+
+        }
+
+        else{
+
+
+            $request = $this->get_user_request($DB,  $USER->id, $workflow->id);
+
+            $approved = false;
+            $declined = false;
+            $cansubmit = true;
+            $submitteddate = 0;
+
+            if($request !== null){
+                if($request->request_status === 'approved') $approved = true;
+                elseif ($request->request_status === 'declined') $declined = true;
+                $submitteddate = $request->submission_date;
+            }
+
+            $summary = new workflow_request_status(
+                $workflow->allowsubmissionsfromdate,
+                $request, //is null if no submission
+                true,
+                $approved,
+                $declined,
+                $workflow->duedate,
+                $workflow->cutoffdate,
+                $submitteddate,
+                $coursemodule_id
+            );
+
+            $o .= $this->get_renderer()->render($summary);
+
+        }
 
         $o .= $this->view_footer();
 
-//        \mod_assign\event\submission_status_viewed::create_from_assign($this)->trigger();
-
         return $o;
+    }
+
+    public function get_useremail($DB, $user_id) {
+        $user_db = $DB->get_record_sql("SELECT email
+                                    FROM mdl_user
+                                    WHERE id = ?;", [$user_id]);
+
+        return $user_db;
+    }
+
+
+
+    public function get_quizname_form_workflow($DB, $workflow_id) {
+        $quizid = $DB->get_record_sql("SELECT name
+                                    FROM mdl_quiz
+                                    WHERE id IN (
+                                        SELECT quiz
+                                        FROM mdl_workflow_quiz
+                                        WHERE workflow = ?
+                                    );
+                            ", [$workflow_id]);
+
+        return $quizid;
+    }
+
+     function get_assignmentname_form_workflow($DB, $workflow_id) {
+        $assignmentid = $DB->get_record_sql("SELECT name
+                                            FROM mdl_assign
+                                            WHERE id IN (
+                                                SELECT assignment
+                                                FROM mdl_workflow_assignment
+                                                WHERE workflow = ?
+                                            );
+                            ", [$workflow_id]);
+
+        return $assignmentid;
+    }
+
+    private function get_workflow($DB, $coursemodule_id) {
+        $workflow = $DB->get_record_sql("SELECT *
+                                        FROM mdl_workflow
+                                        WHERE id IN (
+                                        SELECT instance
+                                        FROM mdl_course_modules
+                                        WHERE id=? );
+                            ", [$coursemodule_id]);
+
+        return $workflow;
+    }
+
+    private function get_user_request($DB, $uid, $wid) {
+
+        $request = $DB->get_record_sql("SELECT * 
+                                        FROM mdl_workflow_request
+                                        WHERE workflow = ?
+                                        AND student = ?",
+                                        [ $wid,  $uid ],
+                                        );
+
+
+        if(!$request) $request = null;
+        return $request;
+
     }
 
 
     protected function view_editsubmission_page()
     {
         global $CFG, $DB, $USER, $PAGE;
-
         $instance = $this->get_instance();
-
         $o = '';
         $postfix = '';
 
-        $o .= $this->get_renderer()->render(new assign_header($instance,
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/request_form.php');
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
             $this->get_context(),
             true,
             $this->get_course_module()->id,
             '', '', $postfix));
 
-        $req_form = new block_requestformblock();
-        $form = $req_form->get_content();
-        $o .= $form->text;
+        $mform = new request_form(null, array('cmid'=> $coursemodule_id));
+        $form = new workflow_requestform('editsubmissionform', $mform);
 
+        $o .= $this->get_renderer()->render($form);
 
         $o .= $this->view_footer();
 
         return $o;
+
     }
+
+    /**
+     * Save assignment submission.
+     *
+     * @return bool
+     */
+    protected function process_save_submission() {
+        global $CFG, $USER;
+
+        // Include submission form.
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/request_form.php');
+
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        require_sesskey();
+        $instance = $this->get_instance();
+
+        $mform = new request_form(null, array('cmid'=> $coursemodule_id));
+
+        if ($mform->is_cancelled()) {
+            return true;
+        }
+        if ($data = $mform->get_data()) {
+            return $this->add_request($data,$coursemodule_id);
+        }
+        return false;
+    }
+
+    /**
+     * Add this request to the database.
+     *
+     * @param stdClass $formdata The data submitted from the form
+     * @return mixed false if an error occurs or the int id of the new request
+     */
+    public function add_request( $formdata, $coursemodule_id){
+
+        global $DB, $USER;
+
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
+        $update = new stdClass();
+        $update->workflow = $workflow->id;
+        $update->student = $USER->id;
+        $update->reason = $formdata->reason_select;
+        $update->other_reason = $formdata->other_reason;
+        $update->comments = $formdata->comments['text'];
+        $update->commentsformat = $formdata->comments['format'];
+        $update->extend_date = $formdata->extend_to;
+        $update->submission_date = time();
+        $update->request_status = 'pending';
+
+
+        $returnid = $DB->insert_record('workflow_request', $update);
+
+        return $returnid;
+    }
+
+    /**
+     * Show a confirmation page to make sure they want to remove submission data.
+     *
+     * @return string
+     */
+    protected function view_remove_submission_confirm() {
+        global $USER, $DB;
+
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+
+        $o = '';
+        $header = new workflow_header($this->get_instance(),
+            $this->get_context(),
+            false,
+            $this->get_course_module()->id);
+        $o .= $this->get_renderer()->render($header);
+
+        $urlparams = array('id' => $this->get_course_module()->id,
+            'action' => 'removesubmissionconfirm',
+            'userid' => $userid,
+            'sesskey' => sesskey());
+        $confirmurl = new moodle_url('/mod/workflow/view.php', $urlparams);
+
+        $urlparams = array('id' => $this->get_course_module()->id,
+            'action' => '');
+        $cancelurl = new moodle_url('/mod/workflow/view.php', $urlparams);
+
+        if ($userid == $USER->id) {
+            $confirmstr = get_string('removesubmissionconfirm', 'assign');
+        } else {
+            $name = $this->fullname($user);
+            $confirmstr = get_string('removesubmissionconfirmforstudent', 'assign', $name);
+        }
+        $o .= $this->get_renderer()->confirm($confirmstr,
+            $confirmurl,
+            $cancelurl);
+
+        $o .= $this->view_footer();
+
+        //\mod_assign\event\remove_submission_form_viewed::create_from_user($this, $user)->trigger();
+
+        return $o;
+    }
+
+    /**
+     * Remove the current request.
+     *
+     * @param int $userid
+     * @return boolean
+     */
+    public function process_remove_submission() {
+
+        global $DB, $USER;
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
+        $wid = $workflow->id;
+
+
+        $result = true;
+
+        $result = $DB->delete_records('workflow_request', array('student' => $userid, 'workflow' =>  $wid));
+
+        return $result;
+
+        }
+
 
 }

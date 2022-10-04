@@ -66,10 +66,12 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="workflow" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the workflow this request is part of."/>
         <FIELD NAME="student" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the student owning this request."/>
-        <FIELD NAME="reason" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="reason for the request"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="reason for the request"/>
         <FIELD NAME="other_reason" SEQUENCE="false" TYPE="char" LENGTH="255" NOTNULL="false" COMMENT="The reason if 'other' option is selected"/>
-        <FIELD NAME="comments" SEQUENCE="false" TYPE="text" NOTNULL="false" COMMENT="The comments students have added"/>
+        <FIELD NAME="comments" SEQUENCE="false" TYPE="text" NOTNULL="true" COMMENT="The comments students have added"/>
+        <FIELD NAME="commentsformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The format of the comments field of the workflow. This field is used by feature MOD_INTRO."/>
         <FIELD NAME="extend_date" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The timestamp of the date student want deadline to be extended"/>
+        <FIELD NAME="submission_date" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The timestamp of the date student submitted the request"/>
         <FIELD NAME="request_status" SEQUENCE="false" TYPE="char" LENGTH="10" NOTNULL="true" COMMENT="Status of the request" />
       </FIELDS>
       <KEYS>
