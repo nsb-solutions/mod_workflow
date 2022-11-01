@@ -568,7 +568,7 @@ class workflow {
         $context = context_module::instance($coursemodule_id);
         $workflow = $this->get_workflow($DB, $coursemodule_id);
 
-        if(!has_capability('mod/workflow:addrequest', $context)) {
+        if ($this->can_view_grades()) {
 
             $lecturer = $this->get_useremail($DB, $workflow->lecturer);
             $instructor = $this->get_useremail($DB, $workflow->instructor);
@@ -581,42 +581,41 @@ class workflow {
             $participants = 0;
             $requested = 0;
             $pending = 0;
-        $lecturer = $this->get_useremail($DB, $workflow->lecturer);
-        $instructor = $this->get_useremail($DB, $workflow->instructor);
-        $item = '';
-        if ($workflow->type==='assignment') {
-            $item = $this->get_assignmentname_form_workflow($DB, $workflow->id)->name;
-        } else if ($workflow->type==='quiz') {
-            $item = $this->get_quizname_form_workflow($DB, $workflow->id)->name;
+            $lecturer = $this->get_useremail($DB, $workflow->lecturer);
+            $instructor = $this->get_useremail($DB, $workflow->instructor);
+            $item = '';
+            if ($workflow->type==='assignment') {
+                $item = $this->get_assignmentname_form_workflow($DB, $workflow->id)->name;
+            } else if ($workflow->type==='quiz') {
+                $item = $this->get_quizname_form_workflow($DB, $workflow->id)->name;
+            }
+            $countparticipants = $this->count_participants(false);
+            $requested = 0;
+            $pending = 0;
+
+            // TODO: two hard coded values
+            $summary = new workflow_grading_summary(
+                $countparticipants,
+                $workflow->type,
+                $item,
+                true,
+                $requested,
+                $workflow->cutoffdate,
+                $workflow->duedate,
+                $coursemodule_id,
+                $pending,
+                $lecturer->email,
+                $instructor->email,
+                $course->relativedatesmode,
+                $course->startdate,
+                true,
+                $cm->visible
+            );
+
+            $o .= $this->get_renderer()->render($summary);
         }
-        $countparticipants = $this->count_participants(false);
-        $requested = 0;
-        $pending = 0;
 
-        // TODO: two hard coded values
-        $summary = new workflow_grading_summary(
-            $countparticipants,
-            $workflow->type,
-            $item,
-            true,
-            $requested,
-            $workflow->cutoffdate,
-            $workflow->duedate,
-            $coursemodule_id,
-            $pending,
-            $lecturer->email,
-            $instructor->email,
-            $course->relativedatesmode,
-            $course->startdate,
-            true,
-            $cm->visible
-        );
-
-        $o .= $this->get_renderer()->render($summary);
-
-        }
-
-        else{
+        if ($this->can_view_submission($USER->id)) {
 
 
             $request = $this->get_user_request($DB,  $USER->id, $workflow->id);
@@ -654,20 +653,20 @@ class workflow {
     }
 
     public function get_useremail($DB, $user_id) {
-        $user_db = $DB->get_record_sql("SELECT email
-                                    FROM mdl_user
-                                    WHERE id = ?;", [$user_id]);
+        $user_db = $DB->get_record_sql("SELECT u.email
+                                    FROM {user} u
+                                    WHERE u.id = ?;", [$user_id]);
 
         return $user_db;
     }
 
     public function get_quizname_form_workflow($DB, $workflow_id) {
-        $quizid = $DB->get_record_sql("SELECT name
-                                    FROM mdl_quiz
-                                    WHERE id IN (
-                                        SELECT quiz
-                                        FROM mdl_workflow_quiz
-                                        WHERE workflow = ?
+        $quizid = $DB->get_record_sql("SELECT q.name
+                                    FROM {quiz} q
+                                    WHERE q.id IN (
+                                        SELECT wq.quiz
+                                        FROM {workflow_quiz} wq
+                                        WHERE wq.workflow = ?
                                     );
                             ", [$workflow_id]);
 
@@ -675,12 +674,12 @@ class workflow {
     }
 
      function get_assignmentname_form_workflow($DB, $workflow_id) {
-        $assignmentid = $DB->get_record_sql("SELECT name
-                                            FROM mdl_assign
-                                            WHERE id IN (
-                                                SELECT assignment
-                                                FROM mdl_workflow_assignment
-                                                WHERE workflow = ?
+        $assignmentid = $DB->get_record_sql("SELECT a.name
+                                            FROM {assign} a
+                                            WHERE a.id IN (
+                                                SELECT wa.assignment
+                                                FROM {workflow_assignment} wa
+                                                WHERE wa.workflow = ?
                                             );
                             ", [$workflow_id]);
 
@@ -689,11 +688,11 @@ class workflow {
 
     private function get_workflow($DB, $coursemodule_id) {
         $workflow = $DB->get_record_sql("SELECT *
-                                        FROM mdl_workflow
-                                        WHERE id IN (
-                                        SELECT instance
-                                        FROM mdl_course_modules
-                                        WHERE id=? );
+                                        FROM {workflow} w
+                                        WHERE w.id IN (
+                                        SELECT cm.instance
+                                        FROM {course_modules} cm
+                                        WHERE cm.id=? );
                             ", [$coursemodule_id]);
 
         return $workflow;
@@ -702,10 +701,10 @@ class workflow {
     private function get_user_request($DB, $uid, $wid) {
 
         $request = $DB->get_record_sql("SELECT * 
-                                        FROM mdl_workflow_request
-                                        WHERE workflow = ?
-                                        AND student = ?",
-                                        [ $wid,  $uid ],
+                                        FROM {workflow_request} wr
+                                        WHERE wr.workflow = ?
+                                        AND wr.student = ?",
+                                        [ $wid,  $uid ]
                                         );
 
 
@@ -867,5 +866,52 @@ class workflow {
 
         }
 
+    /**
+     * Does this user have view grade or grade permission for this assignment?
+     *
+     * @param mixed $groupid int|null when is set to a value, use this group instead calculating it
+     * @return bool
+     */
+    public function can_view_grades($groupid = null) {
+        // Permissions check.
+        if (!has_any_capability(array('mod/assign:viewgrades', 'mod/assign:grade'), $this->context)) {
+            return false;
+        }
 
+        return true;
+    }
+
+    /**
+     * Perform an access check to see if the current $USER can view this users submission.
+     *
+     * @param int $userid
+     * @return bool
+     */
+    public function can_view_submission($userid) {
+        global $USER;
+
+        if (!$this->is_active_user($userid) && !has_capability('moodle/course:viewsuspendedusers', $this->context)) {
+            return false;
+        }
+        if (!is_enrolled($this->get_course_context(), $userid)) {
+            return false;
+        }
+        if (has_any_capability(array('mod/assign:viewgrades', 'mod/assign:grade'), $this->context)) {
+            return true;
+        }
+        if ($userid == $USER->id) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Return true is user is active user in course else false
+     *
+     * @param int $userid
+     * @return bool true is user is active in course.
+     */
+    public function is_active_user($userid) {
+        return !in_array($userid, get_suspended_userids($this->context, true));
+    }
 }
