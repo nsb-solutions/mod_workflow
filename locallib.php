@@ -529,6 +529,12 @@ class workflow {
             $action = 'redirect';
         }
 
+        elseif ($action == 'lecturerapproved') {
+            $this->process_lecturer_approve();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
+        }
+
         // Handle redirects
         if ($action == 'redirect') {
             $nextpageurl = new moodle_url('/mod/workflow/view.php', $nextpageparams);
@@ -561,10 +567,6 @@ class workflow {
 
         elseif ($action == 'lecturerapprove') {
             $o .= $this->view_lecturerapprove_page();
-        }
-
-        elseif ($action == 'lecturerreject') {
-            $o .= $this->view_reject_request_confirm();
         }
 
         // Now show the right view page.
@@ -832,6 +834,34 @@ class workflow {
 
     }
 
+    protected function view_lecturerapprove_page()
+    {
+        global $CFG, $DB, $USER, $PAGE;
+        $instance = $this->get_instance();
+        $o = '';
+        $postfix = '';
+
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/lecturer_approve_form.php');
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $mform = new lecturer_approve_form(null, array('cmid'=> $coursemodule_id));
+        $form = new workflow_requestapprove('lecturerapprove', $mform);
+
+        $o .= $this->get_renderer()->render($form);
+
+        $o .= $this->view_footer();
+
+        return $o;
+
+    }
+
     /**
      * Show a confirmation page to make sure they want to remove submission data.
      *
@@ -981,6 +1011,40 @@ class workflow {
 
         // update request status
         require_once($CFG->dirroot . '/mod/workflow/classes/form/instructor_approve_form.php');
+        $requestid = required_param('requestid', PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        require_sesskey();
+
+        $mform = new instructor_approve_form(null, array('cmid'=> $coursemodule_id));
+
+        if ($mform->is_cancelled()) {
+            return true;
+        }
+
+        if ($data = $mform->get_data()) {
+            $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+            $update_request->request_status = 'accepted';
+            // TODO: save instructor comment in DB
+            return $DB->update_record('workflow_request', $update_request);
+        }
+        return false;
+    }
+
+    /**
+     * Approved request by lecturer.
+     * Update request status
+     * Execute automated tasks if necessary
+     *
+     * @param int $userid
+     * @return boolean
+     */
+    public function process_lecturer_approve() {
+        global $DB, $USER, $CFG;
+        // TODO: check valid instructor
+
+        // update request status
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/lecturer_approve_form.php');
         $requestid = required_param('requestid', PARAM_INT);
         $coursemodule_id = required_param('id', PARAM_ALPHANUM);
 

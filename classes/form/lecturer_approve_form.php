@@ -36,42 +36,19 @@ class lecturer_approve_form extends moodleform {
         global $CFG;
         global $PAGE;
 
-        $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
+        $requestid = required_param('requestid', PARAM_INT);
 
         $mform = $this->_form;
         $cmid = $this->_customdata;
         $coursemoduleid =  $cmid['cmid'];
 
-        //Adding the select reason field
-        $reasons = array(
-            'medical' => get_string('medical', 'workflow'),
-            'university related' => get_string('university_related', 'workflow'),
-            'forgot' => get_string('forgot', 'workflow'),
-            'other' => get_string('other', 'workflow')
-        );
-        $reasons_select = $mform->addElement('select', 'reason_select', get_string('reason', 'workflow'), $reasons);
-        $mform->addHelpButton('reason_select', 'reason', 'workflow');
-        $reasons_select->setSelected($reasons);
-
-        //if other reason selected
-        $mform->addElement('text', 'other_reason', get_string('reason', 'workflow'), array('size' => '64'));
-        $mform->setType('other_reason', PARAM_ALPHA);
-        //$mform->addHelpButton('reason_select', 'other', 'workflow');
-
-        //Adding editor field to input any comments //TODO db
-        $mform->addElement('editor', 'comments', get_string('comments', 'workflow'));
-        $mform->setType('comments', PARAM_RAW);
-
-        //Adding file upload field
-        $mform->addElement('filemanager', 'attachments', get_string('evidence', 'workflow'), null,
-            array('subdirs' => 0, 'maxbytes' => 10240000, 'areamaxbytes' => 10485760, 'maxfiles' => 50,
-                'accepted_types' => array('.doc', '.pdf', '.jpg', '.png', '.jpeg'), 'return_types'=> FILE_INTERNAL | FILE_EXTERNAL)); //TODO get file types form db
-
         $mform->addElement('date_time_selector', 'extend_to', get_string('extend_to', 'workflow'));
 
         $mform->addElement('hidden', 'id', $coursemoduleid);
         $mform->setType('id', PARAM_INT);
-        $mform->addElement('hidden', 'action', 'savesubmission');
+        $mform->addElement('hidden', 'requestid', $requestid);
+        $mform->setType('requestid', PARAM_INT);
+        $mform->addElement('hidden', 'action', 'lecturerapproved');
         $mform->setType('action', PARAM_ALPHA);
 
         $this->add_action_buttons();
