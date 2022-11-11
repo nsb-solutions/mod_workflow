@@ -36,11 +36,10 @@ class instructor_approve_form extends moodleform {
         global $CFG;
         global $PAGE;
 
-        $PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/workflow/module.js'));
-
         $mform = $this->_form;
         $cmid = $this->_customdata;
         $coursemoduleid =  $cmid['cmid'];
+        $requestid = required_param('requestid', PARAM_INT);
 
         //Adding editor field to input any comments //TODO db
         $mform->addElement('editor', 'comments', get_string('comments', 'workflow'));
@@ -48,6 +47,8 @@ class instructor_approve_form extends moodleform {
 
         $mform->addElement('hidden', 'id', $coursemoduleid);
         $mform->setType('id', PARAM_INT);
+        $mform->addElement('hidden', 'requestid', $requestid);
+        $mform->setType('requestid', PARAM_INT);
         $mform->addElement('hidden', 'action', 'instructorapproved');
         $mform->setType('action', PARAM_ALPHA);
 

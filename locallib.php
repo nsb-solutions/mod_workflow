@@ -965,19 +965,36 @@ class workflow {
 
     /**
      * Approved request by instructor.
+     * Update request status
+     * Add instructor comment
      *
      * @param int $userid
      * @return boolean
      */
     public function process_instructor_approve() {
-        global $DB;
+        global $DB, $USER, $CFG;
         // TODO: check valid instructor
-        // TODO: save instructor comment in DB
+
         // update request status
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/instructor_approve_form.php');
         $requestid = required_param('requestid', PARAM_INT);
-        $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
-        $update_request->request_status = 'instructor_approved';
-        $result_request = $DB->update_record('workflow_request', $update_request);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        require_sesskey();
+
+        $mform = new instructor_approve_form(null, array('cmid'=> $coursemodule_id));
+
+        if ($mform->is_cancelled()) {
+            return true;
+        }
+
+        if ($data = $mform->get_data()) {
+            $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+            $update_request->request_status = 'accepted';
+            // TODO: save instructor comment in DB
+            return $DB->update_record('workflow_request', $update_request);
+        }
+        return false;
     }
 
     /**
@@ -988,13 +1005,14 @@ class workflow {
      * @return boolean
      */
     public function process_instructor_reject() {
-        global $DB;
+        global $DB, $USER;
         // TODO: check valid instructor
+
         // update request status
         $requestid = required_param('requestid', PARAM_INT);
         $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
         $update_request->request_status = 'declined';
-        $result_request = $DB->update_record('workflow_request', $update_request);
+        return $DB->update_record('workflow_request', $update_request);
     }
 
     /**
