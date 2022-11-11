@@ -499,6 +499,7 @@ class workflow {
         $mform = null;
         $nextpageparams = array();
 
+        // Append course id to parameters
         if (!empty($this->get_course_module()->id)) {
             $nextpageparams['id'] = $this->get_course_module()->id;
         }
@@ -515,6 +516,18 @@ class workflow {
             $nextpageparams['action'] = '';
             $action = 'redirect';
         }
+
+        elseif ($action == 'instructorapproved') {
+            $this->process_instructor_approve();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
+        }
+
+        elseif ($action == 'instructorrejected') {
+            // TODO
+        }
+
+        // Handle redirects
         if ($action == 'redirect') {
             $nextpageurl = new moodle_url('/mod/workflow/view.php', $nextpageparams);
             $messages = '';
@@ -527,12 +540,23 @@ class workflow {
             redirect($nextpageurl, $messages, null, $messagetype);
             return;
         }
+
         elseif($action == 'removesubmission'){
             $o .= $this->view_remove_submission_confirm();
         }
+
         elseif ($action == 'editsubmission') {
             $o .= $this->view_editsubmission_page();
         }
+
+        elseif ($action == 'instructorapprove') {
+            $o .= $this->view_instructorapprove_page();
+        }
+
+        elseif ($action == 'lecturerapprove') {
+            $o .= $this->view_lecturerapprove_page();
+        }
+
         // Now show the right view page.
         else {
             $o .= $this->view_submission_page();
@@ -770,6 +794,34 @@ class workflow {
         return false;
     }
 
+    protected function view_instructorapprove_page()
+    {
+        global $CFG, $DB, $USER, $PAGE;
+        $instance = $this->get_instance();
+        $o = '';
+        $postfix = '';
+
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/instructor_approve_form.php');
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $mform = new instructor_approve_form(null, array('cmid'=> $coursemodule_id));
+        $form = new workflow_requestapprove('instructorapprove', $mform);
+
+        $o .= $this->get_renderer()->render($form);
+
+        $o .= $this->view_footer();
+
+        return $o;
+
+    }
+
     /**
      * Add this request to the database.
      *
@@ -864,7 +916,17 @@ class workflow {
 
         return $result;
 
-        }
+    }
+
+    /**
+     * Approved request by instructor.
+     *
+     * @param int $userid
+     * @return boolean
+     */
+    public function process_instructor_approve() {
+        // TODO: save instructor comment in DB
+    }
 
     /**
      * Does this user have view grade or grade permission for this assignment?
