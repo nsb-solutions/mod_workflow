@@ -523,8 +523,8 @@ class workflow {
             $action = 'redirect';
         }
 
-        elseif ($action == 'instructorrejected') {
-            $this->process_instructor_reject();
+        elseif ($action == 'requestrejected') {
+            $this->process_request_reject();
             $nextpageparams['action'] = '';
             $action = 'redirect';
         }
@@ -561,6 +561,10 @@ class workflow {
 
         elseif ($action == 'lecturerapprove') {
             $o .= $this->view_lecturerapprove_page();
+        }
+
+        elseif ($action == 'lecturerreject') {
+            $o .= $this->view_reject_request_confirm();
         }
 
         // Now show the right view page.
@@ -846,7 +850,7 @@ class workflow {
         $o .= $this->get_renderer()->render($header);
 
         $urlparams = array('id' => $this->get_course_module()->id,
-            'action' => 'instructorrejected',
+            'action' => 'requestrejected',
             'userid' => $USER->id,
             'requestid' => $requestid,
             'sesskey' => sesskey());
@@ -1004,9 +1008,9 @@ class workflow {
      * @param int $userid
      * @return boolean
      */
-    public function process_instructor_reject() {
+    public function process_request_reject() {
         global $DB, $USER;
-        // TODO: check valid instructor
+        // TODO: check valid instructor/lecturer
 
         // update request status
         $requestid = required_param('requestid', PARAM_INT);
