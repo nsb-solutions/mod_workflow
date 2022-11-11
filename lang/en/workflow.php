@@ -70,3 +70,5 @@ $string['assignmentselectvalidation'] = 'An assignment must be selected.';
 $string['quizselectvalidation'] = 'A quiz must be selected.';
 $string['lecturerselectvalidation'] = 'A lecturer must be selected.';
 $string['instructorselectvalidation'] = 'An instructor must be selected.';
+
+$string['rejectrequestconfirm'] = 'Are you sure you want to reject the student request?';

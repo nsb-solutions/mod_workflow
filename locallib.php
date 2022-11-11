@@ -524,7 +524,9 @@ class workflow {
         }
 
         elseif ($action == 'instructorrejected') {
-            // TODO
+            $this->process_instructor_reject();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
         }
 
         // Handle redirects
@@ -551,6 +553,10 @@ class workflow {
 
         elseif ($action == 'instructorapprove') {
             $o .= $this->view_instructorapprove_page();
+        }
+
+        elseif ($action == 'instructorreject') {
+            $o .= $this->view_reject_request_confirm();
         }
 
         elseif ($action == 'lecturerapprove') {
@@ -823,6 +829,45 @@ class workflow {
     }
 
     /**
+     * Show a confirmation page to make sure they want to remove submission data.
+     *
+     * @return string
+     */
+    protected function view_reject_request_confirm() {
+        global $USER, $DB;
+
+        $requestid = required_param('requestid', PARAM_INT);
+
+        $o = '';
+        $header = new workflow_header($this->get_instance(),
+            $this->get_context(),
+            false,
+            $this->get_course_module()->id);
+        $o .= $this->get_renderer()->render($header);
+
+        $urlparams = array('id' => $this->get_course_module()->id,
+            'action' => 'instructorrejected',
+            'userid' => $USER->id,
+            'requestid' => $requestid,
+            'sesskey' => sesskey());
+        $confirmurl = new moodle_url('/mod/workflow/view.php', $urlparams);
+
+        $urlparams = array('id' => $this->get_course_module()->id,
+            'action' => '');
+        $cancelurl = new moodle_url('/mod/workflow/view.php', $urlparams);
+
+        $confirmstr = get_string('rejectrequestconfirm', 'workflow');
+
+        $o .= $this->get_renderer()->confirm($confirmstr,
+            $confirmurl,
+            $cancelurl);
+
+        $o .= $this->view_footer();
+
+        return $o;
+    }
+
+    /**
      * Add this request to the database.
      *
      * @param stdClass $formdata The data submitted from the form
@@ -925,7 +970,31 @@ class workflow {
      * @return boolean
      */
     public function process_instructor_approve() {
+        global $DB;
+        // TODO: check valid instructor
         // TODO: save instructor comment in DB
+        // update request status
+        $requestid = required_param('requestid', PARAM_INT);
+        $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+        $update_request->request_status = 'instructor_approved';
+        $result_request = $DB->update_record('workflow_request', $update_request);
+    }
+
+    /**
+     * Rejected request by instructor.
+     * Update request status
+     *
+     * @param int $userid
+     * @return boolean
+     */
+    public function process_instructor_reject() {
+        global $DB;
+        // TODO: check valid instructor
+        // update request status
+        $requestid = required_param('requestid', PARAM_INT);
+        $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+        $update_request->request_status = 'declined';
+        $result_request = $DB->update_record('workflow_request', $update_request);
     }
 
     /**
