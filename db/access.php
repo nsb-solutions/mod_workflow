@@ -89,4 +89,11 @@ $capabilities = array(
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE
     ),
+
+    // Receive a notification when request status updates
+    'mod/workflow:emailnotifyrequeststatusupdate' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array()
+    ),
 );

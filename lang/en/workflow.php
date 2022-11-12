@@ -72,3 +72,4 @@ $string['lecturerselectvalidation'] = 'A lecturer must be selected.';
 $string['instructorselectvalidation'] = 'An instructor must be selected.';
 
 $string['rejectrequestconfirm'] = 'Are you sure you want to reject the student request?';
+$string['messageprovider:requeststatusupdate'] = 'Status update of your workflow request';
