@@ -558,14 +558,23 @@ class workflow {
         }
 
         elseif ($action == 'instructorapprove') {
+            if(!has_capability('mod/workflow:instructorapprove', $this->get_context())) {
+                throw new required_capability_exception($this->context, 'mod/workflow:instructorapprove', 'nopermission', '');
+            }
             $o .= $this->view_instructorapprove_page();
         }
 
-        elseif ($action == 'instructorreject') {
+        elseif ($action == 'requestreject') {
+            if(!has_capability('mod/workflow:requestreject', $this->get_context())) {
+                throw new required_capability_exception($this->context, 'mod/workflow:requestreject', 'nopermission', '');
+            }
             $o .= $this->view_reject_request_confirm();
         }
 
         elseif ($action == 'lecturerapprove') {
+            if(!has_capability('mod/workflow:lecturerapprove', $this->get_context())) {
+                throw new required_capability_exception($this->context, 'mod/workflow:lecturerapprove', 'nopermission', '');
+            }
             $o .= $this->view_lecturerapprove_page();
         }
 
@@ -1007,7 +1016,6 @@ class workflow {
      */
     public function process_instructor_approve() {
         global $DB, $USER, $CFG;
-        // TODO: check valid instructor
 
         // update request status
         require_once($CFG->dirroot . '/mod/workflow/classes/form/instructor_approve_form.php');
@@ -1024,6 +1032,11 @@ class workflow {
 
         if ($data = $mform->get_data()) {
             $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+            $workflow = $DB->get_record('workflow', array('id'=>$update_request->workflow), 'instructor');
+
+            // check assigned instructor
+            if ($USER->id!=$workflow->instructor) return false;
+
             $update_request->request_status = 'accepted';
             // TODO: save instructor comment in DB
             return $DB->update_record('workflow_request', $update_request);
@@ -1075,44 +1088,42 @@ class workflow {
      */
     public function process_request_reject() {
         global $DB, $USER;
-        // TODO: check valid instructor/lecturer
 
-        // update request status
         $requestid = required_param('requestid', PARAM_INT);
         $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
-        $update_request->request_status = 'declined';
-        $result = $DB->update_record('workflow_request', $update_request);
-        $workflow = $DB->get_record('workflow', array('id'=>$update_request->workflow), 'name');
+        $workflow = $DB->get_record('workflow', array('id'=>$update_request->workflow), '*');
 
-        // inform student - send message
-        $message = new \core\message\message();
-        $message->component = 'mod_workflow'; // plugin's name
-        $message->name = 'requeststatusupdate'; // notification name from message.php
-        $message->userfrom = core_user::get_noreply_user();
-        $message->userto = $DB->get_record('user', array('id'=>3));
-        $message->subject = 'Workflow Request Reject Notification';
-//        $message->fullmessage = 'message body';
-        $message->fullmessageformat = FORMAT_MARKDOWN;
-        $messageBody = '';
-        $messageBody .= '<h1>Instructor Comments</h1><hr>';
-        // TODO: instructor comment
-        $messageBody .= '<h1>Request Details</h1>';
-        $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name .'</p>';
-        $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason .'</p>';
-        $messageBody .= $update_request->comments . '<hr>';
-        $message->fullmessagehtml = $messageBody;
-        $message->smallmessage = 'Your request on ' . $workflow->name . ' has been rejected';
-        $message->notification = 1; // this is a notification generated from Moodle
+        $result = null;
+        // check assigned instructor/lecturer
+        if ($USER->id==$workflow->lecturer || $USER->id==$workflow->instructor) {
+            // update request status
+            $update_request->request_status = 'declined';
+            $result = $DB->update_record('workflow_request', $update_request);
 
-        // Actually send the message
-        try {
+
+            // inform student - send message
+            $message = new \core\message\message();
+            $message->component = 'mod_workflow'; // plugin's name
+            $message->name = 'requeststatusupdate'; // notification name from message.php
+            $message->userfrom = core_user::get_noreply_user();
+            $message->userto = $DB->get_record('user', array('id' => 3));
+            $message->subject = 'Workflow Request Reject Notification';
+
+            $message->fullmessageformat = FORMAT_MARKDOWN;
+            $messageBody = '';
+            $messageBody .= '<h1>Instructor Comments</h1><hr>';
+            // TODO: instructor comment
+            $messageBody .= '<h1>Request Details</h1>';
+            $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name . '</p>';
+            $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason . '</p>';
+            $messageBody .= $update_request->comments . '<hr>';
+            $message->fullmessagehtml = $messageBody;
+            $message->smallmessage = 'Your request on ' . $workflow->name . ' has been rejected';
+            $message->notification = 1; // this is a notification generated from Moodle
+
+            // Actually send the message
             $messageid = message_send($message);
         }
-        catch (Exception $e) {
-            ver_dump(get_class($e));
-            die;
-        }
-
         return  $result;
     }
 

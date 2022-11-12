@@ -26,6 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_workflow';
 $plugin->release = '0.1.0';
-$plugin->version = 2022092405;
+$plugin->version = 2022092410;
 $plugin->requires = 2020061500;
 $plugin->maturity = MATURITY_ALPHA;
