@@ -265,3 +265,32 @@ class workflow_requestform implements renderable {
     }
 
 }
+
+/**
+ * Implements a renderable grading options form
+ * @package   mod_workflow
+ * @copyright 2012 NetSpot {@link http://www.netspot.com.au}
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class workflow_requestapprove implements renderable {
+    /** @var moodleform $form is the edit submission form */
+    public $form = null;
+    /** @var string $classname is the name of the class to assign to the container */
+    public $classname = '';
+    /** @var string $jsinitfunction is an optional js function to add to the page requires */
+    public $jsinitfunction = '';
+
+    /**
+     * Constructor
+     * @param string $classname This is the class name for the container div
+     * @param moodleform $form This is the moodleform
+     * @param string $jsinitfunction This is an optional js function to add to the page requires
+     */
+
+    public function __construct($classname, moodleform $form, $jsinitfunction = '') {
+        $this->classname = $classname;
+        $this->form = $form;
+        $this->jsinitfunction = $jsinitfunction;
+    }
+
+}

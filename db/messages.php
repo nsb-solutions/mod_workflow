@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - https://moodle.org/
+// This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,20 +12,23 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Defines message providers (types of message sent) for the workflow module.
  *
- * @package     workflow
- * @copyright   2022 NSB<nsb.software.lk@gmail.com>
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package   mod_workflow
+ * @copyright 2022 NSB<nsb.software.lk@gmail.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_workflow';
-$plugin->release = '0.1.0';
-$plugin->version = 2022092410;
-$plugin->requires = 2020061500;
-$plugin->maturity = MATURITY_ALPHA;
+$messageproviders = array(
+    // Notify teacher that a student has submitted a quiz attempt.
+    'requeststatusupdate' => array(
+        'defaults' => [
+            'email' => MESSAGE_DISALLOWED
+        ],
+    ),
+);

@@ -499,6 +499,7 @@ class workflow {
         $mform = null;
         $nextpageparams = array();
 
+        // Append course id to parameters
         if (!empty($this->get_course_module()->id)) {
             $nextpageparams['id'] = $this->get_course_module()->id;
         }
@@ -515,6 +516,26 @@ class workflow {
             $nextpageparams['action'] = '';
             $action = 'redirect';
         }
+
+        elseif ($action == 'instructorapproved') {
+            $this->process_instructor_approve();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
+        }
+
+        elseif ($action == 'requestrejected') {
+            $this->process_request_reject();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
+        }
+
+        elseif ($action == 'lecturerapproved') {
+            $this->process_lecturer_approve();
+            $nextpageparams['action'] = '';
+            $action = 'redirect';
+        }
+
+        // Handle redirects
         if ($action == 'redirect') {
             $nextpageurl = new moodle_url('/mod/workflow/view.php', $nextpageparams);
             $messages = '';
@@ -527,12 +548,36 @@ class workflow {
             redirect($nextpageurl, $messages, null, $messagetype);
             return;
         }
+
         elseif($action == 'removesubmission'){
             $o .= $this->view_remove_submission_confirm();
         }
+
         elseif ($action == 'editsubmission') {
             $o .= $this->view_editsubmission_page();
         }
+
+        elseif ($action == 'instructorapprove') {
+            if(!has_capability('mod/workflow:instructorapprove', $this->get_context())) {
+                throw new required_capability_exception($this->context, 'mod/workflow:instructorapprove', 'nopermission', '');
+            }
+            $o .= $this->view_instructorapprove_page();
+        }
+
+        elseif ($action == 'requestreject') {
+            if(!has_capability('mod/workflow:requestreject', $this->get_context())) {
+                throw new required_capability_exception($this->context, 'mod/workflow:requestreject', 'nopermission', '');
+            }
+            $o .= $this->view_reject_request_confirm();
+        }
+
+        elseif ($action == 'lecturerapprove') {
+            if(!has_capability('mod/workflow:lecturerapprove', $this->get_context())) {
+                throw new required_capability_exception($this->context, 'mod/workflow:lecturerapprove', 'nopermission', '');
+            }
+            $o .= $this->view_lecturerapprove_page();
+        }
+
         // Now show the right view page.
         else {
             $o .= $this->view_submission_page();
@@ -770,6 +815,101 @@ class workflow {
         return false;
     }
 
+    protected function view_instructorapprove_page()
+    {
+        global $CFG, $DB, $USER, $PAGE;
+        $instance = $this->get_instance();
+        $o = '';
+        $postfix = '';
+
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/instructor_approve_form.php');
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $mform = new instructor_approve_form(null, array('cmid'=> $coursemodule_id));
+        $form = new workflow_requestapprove('instructorapprove', $mform);
+
+        $o .= $this->get_renderer()->render($form);
+
+        $o .= $this->view_footer();
+
+        return $o;
+
+    }
+
+    protected function view_lecturerapprove_page()
+    {
+        global $CFG, $DB, $USER, $PAGE;
+        $instance = $this->get_instance();
+        $o = '';
+        $postfix = '';
+
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/lecturer_approve_form.php');
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $mform = new lecturer_approve_form(null, array('cmid'=> $coursemodule_id));
+        $form = new workflow_requestapprove('lecturerapprove', $mform);
+
+        $o .= $this->get_renderer()->render($form);
+
+        $o .= $this->view_footer();
+
+        return $o;
+
+    }
+
+    /**
+     * Show a confirmation page to make sure they want to remove submission data.
+     *
+     * @return string
+     */
+    protected function view_reject_request_confirm() {
+        global $USER, $DB;
+
+        $requestid = required_param('requestid', PARAM_INT);
+
+        $o = '';
+        $header = new workflow_header($this->get_instance(),
+            $this->get_context(),
+            false,
+            $this->get_course_module()->id);
+        $o .= $this->get_renderer()->render($header);
+
+        $urlparams = array('id' => $this->get_course_module()->id,
+            'action' => 'requestrejected',
+            'userid' => $USER->id,
+            'requestid' => $requestid,
+            'sesskey' => sesskey());
+        $confirmurl = new moodle_url('/mod/workflow/view.php', $urlparams);
+
+        $urlparams = array('id' => $this->get_course_module()->id,
+            'action' => '');
+        $cancelurl = new moodle_url('/mod/workflow/view.php', $urlparams);
+
+        $confirmstr = get_string('rejectrequestconfirm', 'workflow');
+
+        $o .= $this->get_renderer()->confirm($confirmstr,
+            $confirmurl,
+            $cancelurl);
+
+        $o .= $this->view_footer();
+
+        return $o;
+    }
+
     /**
      * Add this request to the database.
      *
@@ -864,7 +1004,190 @@ class workflow {
 
         return $result;
 
+    }
+
+    /**
+     * Approved request by instructor.
+     * Update request status
+     * Add instructor comment
+     *
+     * @param int $userid
+     * @return boolean
+     */
+    public function process_instructor_approve() {
+        global $DB, $USER, $CFG;
+
+        // update request status
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/instructor_approve_form.php');
+        $requestid = required_param('requestid', PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        require_sesskey();
+
+        $mform = new instructor_approve_form(null, array('cmid'=> $coursemodule_id));
+
+        if ($mform->is_cancelled()) {
+            return true;
         }
+
+        if ($data = $mform->get_data()) {
+            $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+            $workflow = $DB->get_record('workflow', array('id'=>$update_request->workflow), 'instructor');
+
+            // check assigned instructor
+            if ($USER->id!=$workflow->instructor) return false;
+
+            $update_request->request_status = 'accepted';
+            // TODO: save instructor comment in DB
+            $DB->update_record('workflow_request', $update_request);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Approved request by lecturer.
+     * Update request status
+     * Execute automated tasks if necessary
+     *
+     * @param int $userid
+     * @return boolean
+     */
+    public function process_lecturer_approve() {
+        global $DB, $USER, $CFG;
+
+        // update request status
+        require_once($CFG->dirroot . '/mod/workflow/classes/form/lecturer_approve_form.php');
+        $requestid = required_param('requestid', PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        require_sesskey();
+
+        $mform = new lecturer_approve_form(null, array('cmid'=> $coursemodule_id));
+
+        if ($mform->is_cancelled()) {
+            return true;
+        }
+
+        if ($data = $mform->get_data()) {
+            $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+            $workflow = $DB->get_record('workflow', array('id'=>$update_request->workflow), '*');
+
+            // check if assigned lecturer
+            if ($USER->id!=$workflow->lecturer) return false;
+
+            $update_request->request_status = 'approved';
+            $DB->update_record('workflow_request', $update_request);
+
+            // automated tasks
+            $this->run_automated_task($workflow, $data->extend_to);
+
+            // inform student - send message
+            $message = new \core\message\message();
+            $message->component = 'mod_workflow'; // plugin's name
+            $message->name = 'requeststatusupdate'; // notification name from message.php
+            $message->userfrom = core_user::get_noreply_user();
+            $message->userto = $DB->get_record('user', array('id' => $update_request->student));
+            $message->subject = 'Workflow Request Approve Notification';
+
+            $message->fullmessageformat = FORMAT_MARKDOWN;
+            $messageBody = '';
+            $messageBody .= '<h1>Request Details</h1>';
+            $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name . '</p>';
+            $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason . '</p>';
+            $messageBody .= $update_request->comments . '<hr>';
+            $message->fullmessagehtml = $messageBody;
+            $message->smallmessage = 'Your request on ' . $workflow->name . ' has been approved';
+            $message->notification = 1; // this is a notification generated from Moodle
+
+            // Actually send the message
+            $messageid = message_send($message);
+
+
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Run automated task based on workflow type.
+     *
+     * @param Workflow $workflow
+     * @param Date $extend_to
+     * @return boolean
+     */
+    private function run_automated_task($workflow, $extend_to) {
+        global $DB;
+
+        if ($workflow->type=='assignment') {
+            $assignment_workflow = $DB->get_record('workflow_assignment', array('workflow'=>$workflow->id), 'assignment');
+            $assignment = $DB->get_record('assign', array('id'=>$assignment_workflow->assignment), '*');
+
+            if ($assignment->duedate>0 && $assignment->duedate<$extend_to) {
+                $assignment->duedate = $extend_to;
+            }
+            if ($assignment->cutoffdate>0 && $assignment->cutoffdate<$extend_to) {
+                $assignment->cutoffdate = $extend_to;
+            }
+            $DB->update_record('assign', $assignment);
+
+        } else if ($workflow->type=='quiz') {
+            $quiz_workflow = $DB->get_record('workflow_quiz', array('workflow'=>$workflow->id), 'quiz');
+            $quiz = $DB->get_record('quiz', array('id'=>$quiz_workflow->quiz), '*');
+
+            if ($quiz->timeclose>0 && $quiz->timeclose<$extend_to) {
+                $quiz->timeclose = $extend_to;
+            }
+            $DB->update_record('quiz', $quiz);
+        }
+        return true;
+    }
+
+    /**
+     * Rejected request by instructor.
+     * Update request status
+     *
+     * @param int $userid
+     * @return boolean
+     */
+    public function process_request_reject() {
+        global $DB, $USER;
+
+        $requestid = required_param('requestid', PARAM_INT);
+        $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+        $workflow = $DB->get_record('workflow', array('id'=>$update_request->workflow), '*');
+
+        $result = null;
+        // check assigned instructor/lecturer
+        if ($USER->id==$workflow->lecturer || $USER->id==$workflow->instructor) {
+            // update request status
+            $update_request->request_status = 'declined';
+            $result = $DB->update_record('workflow_request', $update_request);
+
+
+            // inform student - send message
+            $message = new \core\message\message();
+            $message->component = 'mod_workflow'; // plugin's name
+            $message->name = 'requeststatusupdate'; // notification name from message.php
+            $message->userfrom = core_user::get_noreply_user();
+            $message->userto = $DB->get_record('user', array('id' => $update_request->student));
+            $message->subject = 'Workflow Request Reject Notification';
+
+            $message->fullmessageformat = FORMAT_MARKDOWN;
+            $messageBody = '';
+            $messageBody .= '<h1>Request Details</h1>';
+            $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name . '</p>';
+            $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason . '</p>';
+            $messageBody .= $update_request->comments . '<hr>';
+            $message->fullmessagehtml = $messageBody;
+            $message->smallmessage = 'Your request on ' . $workflow->name . ' has been rejected';
+            $message->notification = 1; // this is a notification generated from Moodle
+
+            // Actually send the message
+            $messageid = message_send($message);
+        }
+        return  $result;
+    }
 
     /**
      * Does this user have view grade or grade permission for this assignment?
