@@ -1039,7 +1039,8 @@ class workflow {
 
             $update_request->request_status = 'accepted';
             // TODO: save instructor comment in DB
-            return $DB->update_record('workflow_request', $update_request);
+            $DB->update_record('workflow_request', $update_request);
+            return true;
         }
         return false;
     }
@@ -1054,7 +1055,6 @@ class workflow {
      */
     public function process_lecturer_approve() {
         global $DB, $USER, $CFG;
-        // TODO: check valid lecturer
 
         // update request status
         require_once($CFG->dirroot . '/mod/workflow/classes/form/lecturer_approve_form.php');
@@ -1071,12 +1071,76 @@ class workflow {
 
         if ($data = $mform->get_data()) {
             $update_request = $DB->get_record('workflow_request', array('id'=>$requestid), '*');
+            $workflow = $DB->get_record('workflow', array('id'=>$update_request->workflow), '*');
+
+            // check if assigned lecturer
+            if ($USER->id!=$workflow->lecturer) return false;
+
             $update_request->request_status = 'approved';
-            return $DB->update_record('workflow_request', $update_request);
-            // TODO: automated tasks
-            // TODO: inform students
+            $DB->update_record('workflow_request', $update_request);
+
+            // automated tasks
+            $this->run_automated_task($workflow, $data->extend_to);
+
+            // inform student - send message
+            $message = new \core\message\message();
+            $message->component = 'mod_workflow'; // plugin's name
+            $message->name = 'requeststatusupdate'; // notification name from message.php
+            $message->userfrom = core_user::get_noreply_user();
+            $message->userto = $DB->get_record('user', array('id' => $update_request->student));
+            $message->subject = 'Workflow Request Approve Notification';
+
+            $message->fullmessageformat = FORMAT_MARKDOWN;
+            $messageBody = '';
+            $messageBody .= '<h1>Request Details</h1>';
+            $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name . '</p>';
+            $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason . '</p>';
+            $messageBody .= $update_request->comments . '<hr>';
+            $message->fullmessagehtml = $messageBody;
+            $message->smallmessage = 'Your request on ' . $workflow->name . ' has been approved';
+            $message->notification = 1; // this is a notification generated from Moodle
+
+            // Actually send the message
+            $messageid = message_send($message);
+
+
+            return true;
         }
         return false;
+    }
+
+    /**
+     * Run automated task based on workflow type.
+     *
+     * @param Workflow $workflow
+     * @param Date $extend_to
+     * @return boolean
+     */
+    private function run_automated_task($workflow, $extend_to) {
+        global $DB;
+
+        if ($workflow->type=='assignment') {
+            $assignment_workflow = $DB->get_record('workflow_assignment', array('workflow'=>$workflow->id), 'assignment');
+            $assignment = $DB->get_record('assign', array('id'=>$assignment_workflow->assignment), '*');
+
+            if ($assignment->duedate>0 && $assignment->duedate<$extend_to) {
+                $assignment->duedate = $extend_to;
+            }
+            if ($assignment->cutoffdate>0 && $assignment->cutoffdate<$extend_to) {
+                $assignment->cutoffdate = $extend_to;
+            }
+            $DB->update_record('assign', $assignment);
+
+        } else if ($workflow->type=='quiz') {
+            $quiz_workflow = $DB->get_record('workflow_quiz', array('workflow'=>$workflow->id), 'quiz');
+            $quiz = $DB->get_record('quiz', array('id'=>$quiz_workflow->quiz), '*');
+
+            if ($quiz->timeclose>0 && $quiz->timeclose<$extend_to) {
+                $quiz->timeclose = $extend_to;
+            }
+            $DB->update_record('quiz', $quiz);
+        }
+        return true;
     }
 
     /**
@@ -1106,13 +1170,11 @@ class workflow {
             $message->component = 'mod_workflow'; // plugin's name
             $message->name = 'requeststatusupdate'; // notification name from message.php
             $message->userfrom = core_user::get_noreply_user();
-            $message->userto = $DB->get_record('user', array('id' => 3));
+            $message->userto = $DB->get_record('user', array('id' => $update_request->student));
             $message->subject = 'Workflow Request Reject Notification';
 
             $message->fullmessageformat = FORMAT_MARKDOWN;
             $messageBody = '';
-            $messageBody .= '<h1>Instructor Comments</h1><hr>';
-            // TODO: instructor comment
             $messageBody .= '<h1>Request Details</h1>';
             $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name . '</p>';
             $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason . '</p>';
