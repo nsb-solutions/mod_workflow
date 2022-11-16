@@ -389,5 +389,19 @@ class mod_workflow_renderer extends plugin_renderer_base
         return $o;
     }
 
-
+    /**
+     * Render the generic form
+     * @param workflow_requestapprove $form The form to render
+     * @return string
+     */
+    public function render_workflow_requestapprove(workflow_requestapprove $form) {
+        $o = '';
+        if ($form->jsinitfunction) {
+            $this->page->requires->js_init_call($form->jsinitfunction, array());
+        }
+        $o .= $this->output->box_start('boxaligncenter ' . $form->classname);
+        $o .= $this->moodleform($form->form);
+        $o .= $this->output->box_end();
+        return $o;
+    }
 }

@@ -238,11 +238,11 @@ class mod_workflow_mod_form extends moodleform_mod {
 
     private function get_instructors($DB, $course_id) {
          $instructors_db = $DB->get_records_sql("SELECT DISTINCT u.id, u.email
-                                    FROM mdl_course c
-                                    JOIN mdl_context ct ON c.id = ct.instanceid
-                                    JOIN mdl_role_assignments ra ON ra.contextid = ct.id
-                                    JOIN mdl_user u ON u.id = ra.userid
-                                    JOIN mdl_role r ON r.id = ra.roleid
+                                    FROM {course} c
+                                    JOIN {context} ct ON c.id = ct.instanceid
+                                    JOIN {role_assignments} ra ON ra.contextid = ct.id
+                                    JOIN {user} u ON u.id = ra.userid
+                                    JOIN {role} r ON r.id = ra.roleid
                                     WHERE (r.id = 3 OR r.id = 4) AND c.id = ?;", [$course_id]);
 
         $instructors = array();
@@ -254,12 +254,12 @@ class mod_workflow_mod_form extends moodleform_mod {
     }
 
     private function get_lecturers($DB, $course_id) {
-        $lecturers_db = $DB->get_records_sql("SELECT u.id, u.email
-                                    FROM mdl_course c
-                                    JOIN mdl_context ct ON c.id = ct.instanceid
-                                    JOIN mdl_role_assignments ra ON ra.contextid = ct.id
-                                    JOIN mdl_user u ON u.id = ra.userid
-                                    JOIN mdl_role r ON r.id = ra.roleid
+        $lecturers_db = $DB->get_records_sql("SELECT DISTINCT u.id, u.email
+                                    FROM {course} c
+                                    JOIN {context} ct ON c.id = ct.instanceid
+                                    JOIN {role_assignments} ra ON ra.contextid = ct.id
+                                    JOIN {user} u ON u.id = ra.userid
+                                    JOIN {role} r ON r.id = ra.roleid
                                     WHERE r.id = 3 AND c.id = ?;", [$course_id]);
 
         $lecturers = array();
@@ -271,13 +271,13 @@ class mod_workflow_mod_form extends moodleform_mod {
     }
 
     private function get_quizzes($DB, $course_id) {
-        $quizznames_db = $DB->get_records_sql("SELECT mdl_quiz.id, mdl_quiz.name
-                                            FROM mdl_course_modules
-                                            INNER JOIN mdl_modules
-                                            ON mdl_course_modules.module = mdl_modules.id
-                                            INNER JOIN mdl_quiz
-                                            ON mdl_course_modules.instance = mdl_quiz.id
-                                            WHERE mdl_modules.name='quiz' AND mdl_course_modules.deletioninprogress=0 AND mdl_quiz.course=?;
+        $quizznames_db = $DB->get_records_sql("SELECT q.id, q.name
+                                            FROM {course_modules} cm
+                                            INNER JOIN {modules} m
+                                            ON cm.module = m.id
+                                            INNER JOIN {quiz} q
+                                            ON cm.instance = q.id
+                                            WHERE m.name='quiz' AND cm.deletioninprogress=0 AND q.course=?;
                                  ", [$course_id]);
         $quizzes = array();
         foreach ($quizznames_db as $key => $value) {
@@ -288,13 +288,13 @@ class mod_workflow_mod_form extends moodleform_mod {
     }
 
     private function get_assignments($DB, $course_id) {
-        $assignmentnames_db = $DB->get_records_sql("SELECT mdl_assign.id, mdl_assign.name
-                                                FROM mdl_course_modules
-                                                INNER JOIN mdl_modules
-                                                ON mdl_course_modules.module = mdl_modules.id
-                                                INNER JOIN mdl_assign
-                                                ON mdl_course_modules.instance = mdl_assign.id
-                                                WHERE mdl_modules.name='assign' AND mdl_course_modules.deletioninprogress=0 AND mdl_assign.course=?;
+        $assignmentnames_db = $DB->get_records_sql("SELECT a.id, a.name
+                                                FROM {course_modules} cm
+                                                INNER JOIN {modules} m
+                                                ON cm.module = m.id
+                                                INNER JOIN {assign} a
+                                                ON cm.instance = a.id
+                                                WHERE m.name='assign' AND cm.deletioninprogress=0 AND a.course=?;
                                 ", [$course_id]);
         $assignments = array();
         foreach ($assignmentnames_db as $key => $value) {
@@ -306,10 +306,10 @@ class mod_workflow_mod_form extends moodleform_mod {
 
     private function get_prev_form($DB, $coursemodule_id) {
         $prevform_db = $DB->get_record_sql("SELECT *
-                                        FROM mdl_workflow
+                                        FROM {workflow} w
                                         WHERE id IN (
                                         SELECT instance
-                                        FROM mdl_course_modules
+                                        FROM {course_modules} cm
                                         WHERE id=? );
                             ", [$coursemodule_id]);
 
@@ -318,7 +318,7 @@ class mod_workflow_mod_form extends moodleform_mod {
 
     private function get_quizid_form_workflow($DB, $workflow_id) {
         $quizid = $DB->get_record_sql("SELECT quiz
-                                        FROM mdl_workflow_quiz
+                                        FROM {workflow_quiz} wq
                                         WHERE workflow = ?;
                             ", [$workflow_id]);
 
@@ -327,7 +327,7 @@ class mod_workflow_mod_form extends moodleform_mod {
 
     private function get_assignmentid_form_workflow($DB, $workflow_id) {
         $assignmentid = $DB->get_record_sql("SELECT assignment
-                                        FROM mdl_workflow_assignment
+                                        FROM {workflow_assignment} wa
                                         WHERE workflow = ?;
                             ", [$workflow_id]);
 

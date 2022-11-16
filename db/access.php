@@ -89,4 +89,40 @@ $capabilities = array(
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE
     ),
+
+    'mod/workflow:instructorapprove' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'manager' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+        )
+    ),
+
+    'mod/workflow:requestreject' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'manager' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+        )
+    ),
+
+    'mod/workflow:lecturerapprove' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'manager' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+        )
+    ),
+
+    // Receive a notification when request status updates
+    'mod/workflow:emailnotifyrequeststatusupdate' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array()
+    ),
 );
