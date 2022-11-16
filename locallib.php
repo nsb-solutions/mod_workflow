@@ -618,17 +618,14 @@ class workflow {
 
         else{
 
-
             $request = $this->get_user_request($DB,  $USER->id, $workflow->id);
 
-            $approved = false;
-            $declined = false;
+            $request_status = 'No attempt';
             $cansubmit = true;
             $submitteddate = 0;
 
             if($request !== null){
-                if($request->request_status === 'approved') $approved = true;
-                elseif ($request->request_status === 'declined') $declined = true;
+                $request_status = $request->request_status;
                 $submitteddate = $request->submission_date;
             }
 
@@ -636,8 +633,7 @@ class workflow {
                 $workflow->allowsubmissionsfromdate,
                 $request, //is null if no submission
                 true,
-                $approved,
-                $declined,
+                $request_status,
                 $workflow->duedate,
                 $workflow->cutoffdate,
                 $submitteddate,
@@ -787,11 +783,11 @@ class workflow {
         $update->student = $USER->id;
         $update->reason = $formdata->reason_select;
         $update->other_reason = $formdata->other_reason;
-        $update->comments = $formdata->comments['text'];
-        $update->commentsformat = $formdata->comments['format'];
+        $update->student_comments = $formdata->comments['text'];
+        $update->student_commentsformat = $formdata->comments['format'];
         $update->extend_date = $formdata->extend_to;
         $update->submission_date = time();
-        $update->request_status = 'pending';
+        $update->request_status = get_string('pending', 'workflow');
 
 
         $returnid = $DB->insert_record('workflow_request', $update);

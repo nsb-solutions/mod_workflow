@@ -206,8 +206,7 @@ class workflow_request_status implements renderable {
      * @param int $allowsubmissionsfromdate
      * @param stdClass $submission
      * @param bool $submissionsenabled
-     * @param bool $approved
-     * @param bool $declined
+     * @param string $request_status
      * @param int $duedate
      * @param int $cutoffdate
      * @param int $submitteddate
@@ -216,8 +215,7 @@ class workflow_request_status implements renderable {
     public function __construct($allowsubmissionsfromdate,
                                 $submission,
                                 $submissionsenabled,
-                                $approved,
-                                $declined,
+                                $request_status,
                                 $duedate,
                                 $cutoffdate,
                                 $submitteddate,
@@ -226,8 +224,7 @@ class workflow_request_status implements renderable {
         $this->allowsubmissionsfromdate = $allowsubmissionsfromdate;
         $this->submission = $submission;
         $this->submissionsenabled = $submissionsenabled;
-        $this->approved = $approved;
-        $this->declined = $declined;
+        $this->request_status = $request_status;
         $this->duedate = $duedate;
         $this->cutoffdate = $cutoffdate;
         $this->submitteddate = $submitteddate;

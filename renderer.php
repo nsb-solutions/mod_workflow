@@ -279,9 +279,7 @@ class mod_workflow_renderer extends plugin_renderer_base
         $cell1content = get_string('approvalstatus', 'workflow');
         if ($status->submission === null) $cell2content = get_string('noattempt', 'workflow');
         else {
-            if ($status->approved === false && $status->declined === false) $cell2content = get_string('pending', 'workflow');
-            elseif ($status->approved === true) $cell2content = get_string('approved', 'workflow');
-            else $cell2content = get_string('declined', 'workflow');
+            $cell2content = $status->request_status;
         }
         $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
