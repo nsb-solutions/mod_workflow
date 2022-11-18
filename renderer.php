@@ -442,7 +442,7 @@ class mod_workflow_renderer extends plugin_renderer_base
         if($status->submission !== null){
             $url1 = new moodle_url('/mod/workflow/view.php', $urlparams1);
             $o .= html_writer::link($url1, 'Review',
-                ['class' => 'btn btn-secondary']);
+                ['class' => 'btn btn-primary ml-1']);
 
             $url2 = new moodle_url('/mod/workflow/view.php', $urlparams2);
             $o .= html_writer::link($url2, 'Reject',
@@ -459,7 +459,7 @@ class mod_workflow_renderer extends plugin_renderer_base
 
     }
 
-    public function render_workflow_request_status_lecturer(workflow_request_status_instructor $status)
+    public function render_workflow_request_status_lecturer(workflow_request_status_lecturer $status)
     {
         //create table for data
         $o = '';
@@ -538,13 +538,15 @@ class mod_workflow_renderer extends plugin_renderer_base
         $urlparams2 = array('id' => $status->coursemoduleid, 'action' => 'requestreject', 'requestid'=> $status->request_id);
 
         if($status->submission !== null){
+
             $url1 = new moodle_url('/mod/workflow/view.php', $urlparams1);
             $o .= html_writer::link($url1, 'Approve',
-                ['class' => 'btn btn-secondary']);
+                ['class' => 'btn btn-primary ml-1']);
 
             $url2 = new moodle_url('/mod/workflow/view.php', $urlparams2);
             $o .= html_writer::link($url2, 'Decline',
                 ['class' => 'btn btn-secondary']);
+
         }
 
         $o .= $this->output->container_end();
@@ -556,6 +558,8 @@ class mod_workflow_renderer extends plugin_renderer_base
         return $o;
 
     }
+
+
 
     /**
      * Helper method dealing with the fact we can not just fetch the output of moodleforms

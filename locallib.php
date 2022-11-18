@@ -581,7 +581,13 @@ class workflow {
             if(!has_capability('mod/workflow:instructorapprove', $this->get_context()) and has_capability('mod/workflow:lecturerapprove', $this->get_context())) {
                 throw new required_capability_exception($this->context, 'mod/workflow:instructorapprove', 'nopermission', '');
             }
-            $o .= $this->view_instuructor_submission_page();
+            if(has_capability('mod/workflow:instructorapprove', $this->get_context()) and !has_capability('mod/workflow:lecturerapprove', $this->get_context())){
+                $o .= $this->view_instuructor_submission_page();
+            }
+            else{
+                $o .= $this->view_lecturer_submission_page();
+            }
+
         }
 
         // Now show the right view page.
@@ -914,6 +920,63 @@ class workflow {
         }
 
         $summary = new workflow_request_status_instructor(
+            $workflow->allowsubmissionsfromdate,
+            $request_id,
+            $request, //is null if no submission
+            true,
+            $request_status,
+            $workflow->duedate,
+            $workflow->cutoffdate,
+            $submitteddate,
+            $coursemodule_id,
+            $student_comment,
+            $instructor_comment
+        );
+
+        $o .= $this->get_renderer()->render($summary);
+
+        $o .= $this->view_footer();
+
+        return $o;
+
+    }
+
+    protected function view_lecturer_submission_page() {
+
+        global $CFG, $DB, $USER, $PAGE;
+        $instance = $this->get_instance();
+        $o = '';
+        $postfix = '';
+
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
+
+        $request = $this->get_user_request($DB,  $USER->id, $workflow->id);
+
+        $request_status = 'No attempt';
+        $request_id = null;
+        $cansubmit = true;
+        $submitteddate = 0;
+        $student_comment = '-';
+        $instructor_comment = '-';
+
+        if($request !== null){
+            $request_status = $request->request_status;
+            $request_id = $request->id;
+            $submitteddate = $request->submission_date;
+            $student_comment = $request->student_comments;
+            $instructor_comment = $request->instructor_comments;
+        }
+
+        $summary = new workflow_request_status_lecturer(
             $workflow->allowsubmissionsfromdate,
             $request_id,
             $request, //is null if no submission
