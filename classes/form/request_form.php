@@ -63,7 +63,7 @@ class request_form extends moodleform {
         $mform->setType('comments', PARAM_RAW);
 
         //Adding file upload field
-        $mform->addElement('filemanager', 'attachments', get_string('evidence', 'workflow'), null,
+        $mform->addElement('filepicker', 'attachments', get_string('evidence', 'workflow'), null,
             array('subdirs' => 0, 'maxbytes' => 10240000, 'areamaxbytes' => 10485760, 'maxfiles' => 50,
                 'accepted_types' => array('.doc', '.pdf', '.jpg', '.png', '.jpeg'), 'return_types'=> FILE_INTERNAL | FILE_EXTERNAL)); //TODO get file types form db
 

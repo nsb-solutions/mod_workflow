@@ -199,6 +199,8 @@ class workflow_request_status implements renderable {
     public $submitteddate = 0;
     /** @var int coursemoduleid - The workflow course module id */
     public $coursemoduleid = 0;
+    /** @var string comment */
+    public $student_comment = 0;
 
     /**
      * Constructor
@@ -206,37 +208,185 @@ class workflow_request_status implements renderable {
      * @param int $allowsubmissionsfromdate
      * @param stdClass $submission
      * @param bool $submissionsenabled
-     * @param bool $approved
-     * @param bool $declined
+     * @param string $request_status
      * @param int $duedate
      * @param int $cutoffdate
      * @param int $submitteddate
      * @param int $coursemoduleid
+     * @param string $student_comment
      */
     public function __construct($allowsubmissionsfromdate,
                                 $submission,
                                 $submissionsenabled,
-                                $approved,
-                                $declined,
+                                $request_status,
                                 $duedate,
                                 $cutoffdate,
                                 $submitteddate,
-                                $coursemoduleid)
+                                $coursemoduleid,
+                                $student_comment)
     {
         $this->allowsubmissionsfromdate = $allowsubmissionsfromdate;
         $this->submission = $submission;
         $this->submissionsenabled = $submissionsenabled;
-        $this->approved = $approved;
-        $this->declined = $declined;
+        $this->request_status = $request_status;
         $this->duedate = $duedate;
         $this->cutoffdate = $cutoffdate;
         $this->submitteddate = $submitteddate;
         $this->coursemoduleid = $coursemoduleid;
+        $this->student_comment = $student_comment;
     }
 
 
 }
 
+/**
+ * Renderable request status
+ * @package   mod_workflow
+ * @copyright 2012 NetSpot {@link http://www.netspot.com.au}
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class workflow_request_status_instructor implements renderable {
+
+    /** @var int allowsubmissionsfromdate */
+    public $allowsubmissionsfromdate = 0;
+    /** @var stdClass the submission info (may be null) */
+    public $submission = null;
+    /** @var bool submissionsenabled */
+    public $submissionsenabled = false;
+    /** @var bool approved */
+    public $approved = false;
+    /** @var bool declined */
+    public $declined = false;
+    /** @var int duedate */
+    public $duedate = 0;
+    /** @var int cutoffdate */
+    public $cutoffdate = 0;
+    /** @var int submitteddate */
+    public $submitteddate = 0;
+    /** @var int coursemoduleid - The workflow course module id */
+    public $coursemoduleid = 0;
+    /** @var string comment */
+    public $student_comment = 0;
+    /** @var string comment */
+    public $instructor_comment = 0;
+
+    /**
+     * Constructor
+     *
+     * @param int $allowsubmissionsfromdate
+     * @param int $request_id
+     * @param stdClass $submission
+     * @param bool $submissionsenabled
+     * @param string $request_status
+     * @param int $duedate
+     * @param int $cutoffdate
+     * @param int $submitteddate
+     * @param int $coursemoduleid
+     * @param string $student_comment
+     * @param string $instructor_comment
+     */
+    public function __construct($allowsubmissionsfromdate,
+                                $request_id,
+                                $submission,
+                                $submissionsenabled,
+                                $request_status,
+                                $duedate,
+                                $cutoffdate,
+                                $submitteddate,
+                                $coursemoduleid,
+                                $student_comment,
+                                $instructor_comment)
+    {
+        $this->allowsubmissionsfromdate = $allowsubmissionsfromdate;
+        $this->request_id = $request_id;
+        $this->submission = $submission;
+        $this->submissionsenabled = $submissionsenabled;
+        $this->request_status = $request_status;
+        $this->duedate = $duedate;
+        $this->cutoffdate = $cutoffdate;
+        $this->submitteddate = $submitteddate;
+        $this->coursemoduleid = $coursemoduleid;
+        $this->student_comment = $student_comment;
+        $this->instructor_comment = $instructor_comment;
+    }
+
+
+}
+
+
+/**
+ * Renderable request status
+ * @package   mod_workflow
+ * @copyright 2012 NetSpot {@link http://www.netspot.com.au}
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class workflow_request_status_lecturer implements renderable {
+
+    /** @var int allowsubmissionsfromdate */
+    public $allowsubmissionsfromdate = 0;
+    /** @var stdClass the submission info (may be null) */
+    public $submission = null;
+    /** @var bool submissionsenabled */
+    public $submissionsenabled = false;
+    /** @var bool approved */
+    public $approved = false;
+    /** @var bool declined */
+    public $declined = false;
+    /** @var int duedate */
+    public $duedate = 0;
+    /** @var int cutoffdate */
+    public $cutoffdate = 0;
+    /** @var int submitteddate */
+    public $submitteddate = 0;
+    /** @var int coursemoduleid - The workflow course module id */
+    public $coursemoduleid = 0;
+    /** @var string comment */
+    public $student_comment = 0;
+    /** @var string comment */
+    public $instructor_comment = 0;
+
+    /**
+     * Constructor
+     *
+     * @param int $allowsubmissionsfromdate
+     * @param int $request_id
+     * @param stdClass $submission
+     * @param bool $submissionsenabled
+     * @param string $request_status
+     * @param int $duedate
+     * @param int $cutoffdate
+     * @param int $submitteddate
+     * @param int $coursemoduleid
+     * @param string $student_comment
+     * @param string $instructor_comment
+     */
+    public function __construct($allowsubmissionsfromdate,
+                                $request_id,
+                                $submission,
+                                $submissionsenabled,
+                                $request_status,
+                                $duedate,
+                                $cutoffdate,
+                                $submitteddate,
+                                $coursemoduleid,
+                                $student_comment,
+                                $instructor_comment)
+    {
+        $this->allowsubmissionsfromdate = $allowsubmissionsfromdate;
+        $this->request_id = $request_id;
+        $this->submission = $submission;
+        $this->submissionsenabled = $submissionsenabled;
+        $this->request_status = $request_status;
+        $this->duedate = $duedate;
+        $this->cutoffdate = $cutoffdate;
+        $this->submitteddate = $submitteddate;
+        $this->coursemoduleid = $coursemoduleid;
+        $this->student_comment = $student_comment;
+        $this->instructor_comment = $instructor_comment;
+    }
+
+
+}
 /**
  * Implements a renderable grading options form
  * @package   mod_assign

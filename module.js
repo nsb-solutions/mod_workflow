@@ -9,8 +9,8 @@ if(quiz_select !== null) {
     quiz_select.style.display = 'none'
     workflow_type_select.addEventListener('change', function handleChange(event) {
         if (event.target.value === 'assignment') {
-            assignment_select.style.display = 'flex'
-            quiz_select.style.display = 'none'
+            assignment_select.style.display = 'flex';
+            quiz_select.style.display = 'none';
         } else if (event.target.value === 'quiz') {
             assignment_select.style.display = 'none'
             quiz_select.style.display = 'flex'

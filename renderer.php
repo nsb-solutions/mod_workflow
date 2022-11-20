@@ -258,7 +258,7 @@ class mod_workflow_renderer extends plugin_renderer_base
      */
     public function render_workflow_request_status(workflow_request_status $status)
     {
-
+        global $USER;
         //TODO : check dates with time() & determine the variables and give buttons
         /* $canedit,
                                  $cansubmit,
@@ -279,9 +279,7 @@ class mod_workflow_renderer extends plugin_renderer_base
         $cell1content = get_string('approvalstatus', 'workflow');
         if ($status->submission === null) $cell2content = get_string('noattempt', 'workflow');
         else {
-            if ($status->approved === false && $status->declined === false) $cell2content = get_string('pending', 'workflow');
-            elseif ($status->approved === true) $cell2content = get_string('approved', 'workflow');
-            else $cell2content = get_string('declined', 'workflow');
+            $cell2content = $status->request_status;
         }
         $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
@@ -314,8 +312,8 @@ class mod_workflow_renderer extends plugin_renderer_base
             $cell2content = $submission->reason;
             $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
-            $cell1content = get_string('comments', 'workflow');
-            $cell2content = ($submission->comments === null) ? '-' : $submission->comments;
+            $cell1content = get_string('studentcomment', 'workflow');
+            $cell2content = ($submission->student_comments === null) ? '-' : $submission->student_comments;
             $this->add_table_row_tuple($t, $cell1content, $cell2content);
 
             $cell1content = get_string('filesubmission', 'workflow');
@@ -357,6 +355,211 @@ class mod_workflow_renderer extends plugin_renderer_base
         return $o;
 
         }
+
+    public function render_workflow_request_status_instructor(workflow_request_status_instructor $status)
+    {
+
+        //TODO : check dates with time() & determine the variables and give buttons
+        /* $canedit,
+                                 $cansubmit,
+                                 $canremove,*/
+        //create table for data
+        $o = '';
+        $o .= $this->output->container_start('requestsummary');
+        $o .= $this->output->heading('Request summary');
+        $o .= $this->output->box_start('boxaligncenter requestsummarytable');
+        $t = new html_table();
+
+        //submission status
+        $cell1content = get_string('submissionstatus', 'workflow');
+        $cell2content = ($status->submission === null) ? get_string('noattempt', 'workflow') : get_string('submittedforgrading', 'workflow');
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //request approval status
+        $cell1content = get_string('approvalstatus', 'workflow');
+        if ($status->submission === null) $cell2content = get_string('noattempt', 'workflow');
+        else {
+            $cell2content = $status->request_status;
+        }
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        // Due date.
+        $cell1content = get_string('duedate', 'workflow');
+        $duedate = $status->duedate;
+        $cell2content = userdate($duedate);
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //time remaining
+        $time = time();
+        $cell1content = get_string('timeremaining', 'workflow');
+        if ($duedate - $time <= 0) {
+            $cell2content = get_string('assignmentisdue', 'assign');
+        } else {
+            $cell2content = format_time($duedate - $time);
+        }
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //Last submission made
+        $cell1content = get_string('lastmodified', 'workflow');
+        if($status->submission == null) $cell2content = '-';
+        else{$cell2content = userdate($status->submitteddate);}
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //only if the student have a previous submission
+        if($status->submission !== null){
+
+            $submission = $status->submission;
+            $cell1content = get_string('reason', 'workflow');
+            $cell2content = $submission->reason;
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+            $cell1content = get_string('studentcomment', 'workflow');
+            $cell2content = ($submission->student_comments === null) ? '-' : $submission->student_comments;
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+            $cell1content = get_string('filesubmission', 'workflow');
+            //TODO :file submission
+            $cell2content = '-';
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+            $cell1content = get_string('instructorfeedback', 'workflow');
+            $cell2content = ($submission->instructor_comments === null) ? '-' : $submission->instructor_comments;
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+
+        }
+
+        $o .= html_writer::table($t);
+        $o .= $this->output->box_end();
+
+        // Link to the add request page.
+        $o .= html_writer::start_tag('center');
+        $o .= $this->output->container_start('submissionlinks');
+
+        $urlparams1 = array('id' => $status->coursemoduleid, 'action' => 'instructorapprove', 'requestid'=> $status->request_id);
+        $urlparams2 = array('id' => $status->coursemoduleid, 'action' => 'requestreject', 'requestid'=> $status->request_id);
+
+        if($status->submission !== null){
+            $url1 = new moodle_url('/mod/workflow/view.php', $urlparams1);
+            $o .= html_writer::link($url1, 'Review',
+                ['class' => 'btn btn-primary ml-1']);
+
+            $url2 = new moodle_url('/mod/workflow/view.php', $urlparams2);
+            $o .= html_writer::link($url2, 'Reject',
+                ['class' => 'btn btn-secondary']);
+        }
+
+        $o .= $this->output->container_end();
+
+        // Close the container and insert a spacer.
+        $o .= $this->output->container_end();
+        $o .= html_writer::end_tag('center');
+
+        return $o;
+
+    }
+
+    public function render_workflow_request_status_lecturer(workflow_request_status_lecturer $status)
+    {
+        //create table for data
+        $o = '';
+        $o .= $this->output->container_start('requestsummary');
+        $o .= $this->output->heading('Request summary');
+        $o .= $this->output->box_start('boxaligncenter requestsummarytable');
+        $t = new html_table();
+
+        //submission status
+        $cell1content = get_string('submissionstatus', 'workflow');
+        $cell2content = ($status->submission === null) ? get_string('noattempt', 'workflow') : get_string('submittedforgrading', 'workflow');
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //request approval status
+        $cell1content = get_string('approvalstatus', 'workflow');
+        if ($status->submission === null) $cell2content = get_string('noattempt', 'workflow');
+        else {
+            $cell2content = $status->request_status;
+        }
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        // Due date.
+        $cell1content = get_string('duedate', 'workflow');
+        $duedate = $status->duedate;
+        $cell2content = userdate($duedate);
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //time remaining
+        $time = time();
+        $cell1content = get_string('timeremaining', 'workflow');
+        if ($duedate - $time <= 0) {
+            $cell2content = get_string('assignmentisdue', 'assign');
+        } else {
+            $cell2content = format_time($duedate - $time);
+        }
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //Last submission made
+        $cell1content = get_string('lastmodified', 'workflow');
+        if($status->submission == null) $cell2content = '-';
+        else{$cell2content = userdate($status->submitteddate);}
+        $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+        //only if the student have a previous submission
+        if($status->submission !== null){
+
+            $submission = $status->submission;
+            $cell1content = get_string('reason', 'workflow');
+            $cell2content = $submission->reason;
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+            $cell1content = get_string('studentcomment', 'workflow');
+            $cell2content = ($submission->student_comments === null) ? '-' : $submission->student_comments;
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+            $cell1content = get_string('filesubmission', 'workflow');
+            //TODO :file submission
+            $cell2content = '-';
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+            $cell1content = get_string('instructorfeedback', 'workflow');
+            $cell2content = ($submission->instructor_comments === null) ? '-' : $submission->instructor_comments;
+            $this->add_table_row_tuple($t, $cell1content, $cell2content);
+
+
+        }
+
+        $o .= html_writer::table($t);
+        $o .= $this->output->box_end();
+
+        // Link to the add request page.
+        $o .= html_writer::start_tag('center');
+        $o .= $this->output->container_start('submissionlinks');
+
+        $urlparams1 = array('id' => $status->coursemoduleid, 'action' => 'lecturerapprove', 'requestid'=> $status->request_id);
+        $urlparams2 = array('id' => $status->coursemoduleid, 'action' => 'requestreject', 'requestid'=> $status->request_id);
+
+        if($status->submission !== null){
+
+            $url1 = new moodle_url('/mod/workflow/view.php', $urlparams1);
+            $o .= html_writer::link($url1, 'Approve',
+                ['class' => 'btn btn-primary ml-1']);
+
+            $url2 = new moodle_url('/mod/workflow/view.php', $urlparams2);
+            $o .= html_writer::link($url2, 'Decline',
+                ['class' => 'btn btn-secondary']);
+
+        }
+
+        $o .= $this->output->container_end();
+
+        // Close the container and insert a spacer.
+        $o .= $this->output->container_end();
+        $o .= html_writer::end_tag('center');
+
+        return $o;
+
+    }
+
+
 
     /**
      * Helper method dealing with the fact we can not just fetch the output of moodleforms

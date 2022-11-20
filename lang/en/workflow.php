@@ -61,6 +61,8 @@ $string['duedate'] = 'Due date';
 $string['timeremaining'] = 'Time remaining';
 $string['lastmodified'] = 'Last modified';
 $string['filesubmission'] = 'File submission';
+$string['instructorfeedback'] = 'Instructor Feedback';
+$string['studentcomment'] = 'Student Comment';
 
 $string['duedatevalidation'] = 'Due date cannot be earlier than the allow submissions from date.';
 $string['cutoffdatevalidation'] = 'Cut-off date cannot be earlier than the due date.';

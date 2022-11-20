@@ -577,6 +577,18 @@ class workflow {
             }
             $o .= $this->view_lecturerapprove_page();
         }
+        elseif ($action == 'grader'){
+            if(!has_capability('mod/workflow:instructorapprove', $this->get_context()) and has_capability('mod/workflow:lecturerapprove', $this->get_context())) {
+                throw new required_capability_exception($this->context, 'mod/workflow:instructorapprove', 'nopermission', '');
+            }
+            if(has_capability('mod/workflow:instructorapprove', $this->get_context()) and !has_capability('mod/workflow:lecturerapprove', $this->get_context())){
+                $o .= $this->view_instuructor_submission_page();
+            }
+            else{
+                $o .= $this->view_lecturer_submission_page();
+            }
+
+        }
 
         // Now show the right view page.
         else {
@@ -660,32 +672,33 @@ class workflow {
             $o .= $this->get_renderer()->render($summary);
         }
 
-        if ($this->can_view_submission($USER->id)) {
-
+        elseif ($this->can_view_submission($USER->id)) {
 
             $request = $this->get_user_request($DB,  $USER->id, $workflow->id);
 
-            $approved = false;
-            $declined = false;
+            $request_status = 'No attempt';
             $cansubmit = true;
             $submitteddate = 0;
+            $student_comment = '-';
+            $instructor_comment = '-';
 
             if($request !== null){
-                if($request->request_status === 'approved') $approved = true;
-                elseif ($request->request_status === 'declined') $declined = true;
+                $request_status = $request->request_status;
                 $submitteddate = $request->submission_date;
+                $student_comment = $request->student_comments;
+                $instructor_comment = $request->instructor_comments;
             }
 
             $summary = new workflow_request_status(
                 $workflow->allowsubmissionsfromdate,
                 $request, //is null if no submission
                 true,
-                $approved,
-                $declined,
+                $request_status,
                 $workflow->duedate,
                 $workflow->cutoffdate,
                 $submitteddate,
-                $coursemodule_id
+                $coursemodule_id,
+                $student_comment
             );
 
             $o .= $this->get_renderer()->render($summary);
@@ -751,6 +764,20 @@ class workflow {
                                         AND wr.student = ?",
                                         [ $wid,  $uid ]
                                         );
+
+
+        if(!$request) $request = null;
+        return $request;
+
+    }
+
+    private function get_user_request_from_request_id($DB, $rid) {
+
+        $request = $DB->get_record_sql("SELECT * 
+                                        FROM {workflow_request} wr
+                                        WHERE wr.id= ? ",
+            [ $rid ]
+        );
 
 
         if(!$request) $request = null;
@@ -871,6 +898,121 @@ class workflow {
 
     }
 
+    protected function view_instuructor_submission_page() {
+
+        global $CFG, $DB, $USER, $PAGE;
+        $instance = $this->get_instance();
+        $o = '';
+        $postfix = '';
+
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $req_id = required_param('reqid', PARAM_ALPHANUM);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $request = $this->get_user_request_from_request_id($DB, $req_id);
+
+        $request_status = 'No attempt';
+        $request_id = null;
+        $cansubmit = true;
+        $submitteddate = 0;
+        $student_comment = '-';
+        $instructor_comment = '-';
+
+        if($request !== null){
+            $request_status = $request->request_status;
+            $request_id = $request->id;
+            $submitteddate = $request->submission_date;
+            $student_comment = $request->student_comments;
+            $instructor_comment = $request->instructor_comments;
+        }
+
+        $summary = new workflow_request_status_instructor(
+            $workflow->allowsubmissionsfromdate,
+            $request_id,
+            $request, //is null if no submission
+            true,
+            $request_status,
+            $workflow->duedate,
+            $workflow->cutoffdate,
+            $submitteddate,
+            $coursemodule_id,
+            $student_comment,
+            $instructor_comment
+        );
+
+        $o .= $this->get_renderer()->render($summary);
+
+        $o .= $this->view_footer();
+
+        return $o;
+
+    }
+
+    protected function view_lecturer_submission_page() {
+
+        global $CFG, $DB, $USER, $PAGE;
+        $instance = $this->get_instance();
+        $o = '';
+        $postfix = '';
+
+        $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $req_id = required_param('reqid', PARAM_ALPHANUM);
+        $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $o .= $this->get_renderer()->render(new workflow_header($instance,
+            $this->get_context(),
+            true,
+            $this->get_course_module()->id,
+            '', '', $postfix));
+
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
+        $request = $this->get_user_request_from_request_id($DB, $req_id);
+
+        $request_status = 'No attempt';
+        $request_id = null;
+        $cansubmit = true;
+        $submitteddate = 0;
+        $student_comment = '-';
+        $instructor_comment = '-';
+
+        if($request !== null){
+            $request_status = $request->request_status;
+            $request_id = $request->id;
+            $submitteddate = $request->submission_date;
+            $student_comment = $request->student_comments;
+            $instructor_comment = $request->instructor_comments;
+        }
+
+        $summary = new workflow_request_status_lecturer(
+            $workflow->allowsubmissionsfromdate,
+            $request_id,
+            $request, //is null if no submission
+            true,
+            $request_status,
+            $workflow->duedate,
+            $workflow->cutoffdate,
+            $submitteddate,
+            $coursemodule_id,
+            $student_comment,
+            $instructor_comment
+        );
+
+        $o .= $this->get_renderer()->render($summary);
+
+        $o .= $this->view_footer();
+
+        return $o;
+
+    }
+
     /**
      * Show a confirmation page to make sure they want to remove submission data.
      *
@@ -926,11 +1068,11 @@ class workflow {
         $update->student = $USER->id;
         $update->reason = $formdata->reason_select;
         $update->other_reason = $formdata->other_reason;
-        $update->comments = $formdata->comments['text'];
-        $update->commentsformat = $formdata->comments['format'];
+        $update->student_comments = $formdata->comments['text'];
+        $update->student_commentsformat = $formdata->comments['format'];
         $update->extend_date = $formdata->extend_to;
         $update->submission_date = time();
-        $update->request_status = 'pending';
+        $update->request_status = get_string('pending', 'workflow');
 
 
         $returnid = $DB->insert_record('workflow_request', $update);
@@ -1095,7 +1237,7 @@ class workflow {
             $messageBody .= '<h1>Request Details</h1>';
             $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name . '</p>';
             $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason . '</p>';
-            $messageBody .= $update_request->comments . '<hr>';
+            $messageBody .= $update_request->student_comments . '<hr>';
             $message->fullmessagehtml = $messageBody;
             $message->smallmessage = 'Your request on ' . $workflow->name . ' has been approved';
             $message->notification = 1; // this is a notification generated from Moodle
@@ -1178,7 +1320,7 @@ class workflow {
             $messageBody .= '<h1>Request Details</h1>';
             $messageBody .= '<p><strong>Workflow:</strong> ' . $workflow->name . '</p>';
             $messageBody .= '<p><strong>Reason:</strong> ' . $update_request->reason . '</p>';
-            $messageBody .= $update_request->comments . '<hr>';
+            $messageBody .= $update_request->student_comments . '<hr>';
             $message->fullmessagehtml = $messageBody;
             $message->smallmessage = 'Your request on ' . $workflow->name . ' has been rejected';
             $message->notification = 1; // this is a notification generated from Moodle
