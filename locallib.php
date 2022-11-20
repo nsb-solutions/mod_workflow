@@ -771,6 +771,20 @@ class workflow {
 
     }
 
+    private function get_user_request_from_request_id($DB, $rid) {
+
+        $request = $DB->get_record_sql("SELECT * 
+                                        FROM {workflow_request} wr
+                                        WHERE wr.id= ? ",
+            [ $rid ]
+        );
+
+
+        if(!$request) $request = null;
+        return $request;
+
+    }
+
 
     protected function view_editsubmission_page()
     {
@@ -892,7 +906,10 @@ class workflow {
         $postfix = '';
 
         $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $req_id = required_param('reqid', PARAM_ALPHANUM);
         $coursemodule_id = required_param('id', PARAM_ALPHANUM);
+
+        $workflow = $this->get_workflow($DB, $coursemodule_id);
 
         $o .= $this->get_renderer()->render(new workflow_header($instance,
             $this->get_context(),
@@ -900,9 +917,7 @@ class workflow {
             $this->get_course_module()->id,
             '', '', $postfix));
 
-        $workflow = $this->get_workflow($DB, $coursemodule_id);
-
-        $request = $this->get_user_request($DB,  $USER->id, $workflow->id);
+        $request = $this->get_user_request_from_request_id($DB, $req_id);
 
         $request_status = 'No attempt';
         $request_id = null;
@@ -949,6 +964,7 @@ class workflow {
         $postfix = '';
 
         $userid = optional_param('userid', $USER->id, PARAM_INT);
+        $req_id = required_param('reqid', PARAM_ALPHANUM);
         $coursemodule_id = required_param('id', PARAM_ALPHANUM);
 
         $o .= $this->get_renderer()->render(new workflow_header($instance,
@@ -958,8 +974,7 @@ class workflow {
             '', '', $postfix));
 
         $workflow = $this->get_workflow($DB, $coursemodule_id);
-
-        $request = $this->get_user_request($DB,  $USER->id, $workflow->id);
+        $request = $this->get_user_request_from_request_id($DB, $req_id);
 
         $request_status = 'No attempt';
         $request_id = null;
