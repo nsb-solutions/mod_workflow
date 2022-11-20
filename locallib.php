@@ -647,10 +647,9 @@ class workflow {
                 $item = $this->get_quizname_form_workflow($DB, $workflow->id)->name;
             }
             $countparticipants = $this->count_participants(false);
-            $requested = 0;
-            $pending = 0;
+            $requested = $this->get_all_requestcount($DB, $workflow->id)->count;
+            $pending = $this->get_pending_requestcount($DB, $workflow->id)->count;
 
-            // TODO: two hard coded values
             $summary = new workflow_grading_summary(
                 $countparticipants,
                 $workflow->type,
@@ -708,6 +707,22 @@ class workflow {
         $o .= $this->view_footer();
 
         return $o;
+    }
+
+    public function get_all_requestcount($DB, $workflow_id) {
+        $count = $DB->get_record_sql("SELECT COUNT(*) as count
+                                    FROM {workflow_request} wr
+                                    WHERE workflow = ?", [$workflow_id]);
+
+        return $count;
+    }
+
+    public function get_pending_requestcount($DB, $workflow_id) {
+        $count = $DB->get_record_sql("SELECT COUNT(*) as count
+                                    FROM {workflow_request} wr
+                                    WHERE workflow=1 AND request_status='Pending';", [$workflow_id]);
+
+        return $count;
     }
 
     public function get_useremail($DB, $user_id) {
