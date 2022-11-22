@@ -590,6 +590,63 @@ class workflow {
 
         }
 
+        elseif ($action == 'viewall'){
+            global $USER, $DB;
+
+            $id = required_param('id', PARAM_INT);
+            [$course, $cm] = get_course_and_cm_from_cmid($id, 'workflow');
+            $instance = $DB->get_record('workflow', ['id' => $cm->instance], '*', MUST_EXIST);
+            $context = context_module::instance($cm->id);
+            $workflow = $DB->get_record('workflow', ['id' => $cm->instance]);
+
+            $req_table = new req_table();
+//            $requests = $req_table->getAllRequests();
+            $cmid = $cm->id;
+
+            $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
+
+            if(has_capability('mod/workflow:lecturerapprove', $context)) {
+//                $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
+                $lecturer = $req_table->getLecturer($workflowid);
+
+                if ($USER->id === $lecturer) {
+                    $requests = $req_table->getValidRequestsByWorkflow($workflowid);
+                    $requests = $req_table->processRequests($requests);
+                    $templatecontext = (object)[
+                        'requests' => array_values($requests),
+                        'text' => 'text',
+                        'url' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=grader',
+                        'approveurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=lecturerapprove',
+                        'declineurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=requestreject',
+                        'cmid' => $cm->id,
+                        'workflow' => $workflow->name,
+                    ];
+                    $o .= $OUTPUT->render_from_template('mod_workflow/requests_lecturer', $templatecontext);
+                } else {
+                    redirect($CFG->wwwroot . '/course/view.php?id=' . $course->id, 'You are not assigned to this workflow', null, \core\output\notification::NOTIFY_ERROR);
+                }
+            } elseif (has_capability('mod/workflow:instructorapprove', $context)){
+//                $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
+                $instructor = $req_table->getInstructor($workflowid);
+                if ($USER->id === $instructor) {
+                    $requests = $req_table->getRequestsByWorkflow($workflowid);
+                    $requests = $req_table->processRequests($requests);
+                    $templatecontext = (object)[
+                        'requests' => array_values($requests),
+                        'text' => 'text',
+                        'url' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=grader',
+                        'approveurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=instructorapprove',
+                        'declineurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=requestreject',
+                        'cmid' => $cm->id,
+                        'workflow' => $workflow->name,
+                    ];
+                    $o .= $OUTPUT->render_from_template('mod_workflow/requests_instructor', $templatecontext);
+                } else {
+                    redirect($CFG->wwwroot . '/course/view.php?id=' . $course->id, 'You are not assigned to this workflow', null, \core\output\notification::NOTIFY_ERROR);
+                }
+            }
+
+        }
         // Now show the right view page.
         else {
             $o .= $this->view_submission_page();

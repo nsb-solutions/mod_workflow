@@ -231,7 +231,7 @@ class mod_workflow_renderer extends plugin_renderer_base
         // Link to the grading page.
         $o .= html_writer::start_tag('center');
         $o .= $this->output->container_start('submissionlinks');
-        $urlparams = array('id' => $summary->coursemoduleid, 'action' => 'grading');
+        $urlparams = array('id' => $summary->coursemoduleid, 'action' => 'viewall');
         $url = new moodle_url('/mod/workflow/viewall.php', $urlparams);
         $o .= html_writer::link($url, 'View all requests',
             ['class' => 'btn btn-secondary']);
