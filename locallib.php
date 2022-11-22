@@ -24,8 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/mod/workflow/mod_form.php');
 require_once($CFG->dirroot . '/mod/workflow/renderable.php');
+require_once($CFG->dirroot . '/course/format/lib.php');
 
 /**
  * Module instance settings form.
@@ -591,30 +593,27 @@ class workflow {
         }
 
         elseif ($action == 'viewall'){
-            global $USER, $DB;
+            global $USER, $CFG, $DB, $OUTPUT;
 
             $id = required_param('id', PARAM_INT);
             [$course, $cm] = get_course_and_cm_from_cmid($id, 'workflow');
             $instance = $DB->get_record('workflow', ['id' => $cm->instance], '*', MUST_EXIST);
             $context = context_module::instance($cm->id);
             $workflow = $DB->get_record('workflow', ['id' => $cm->instance]);
-
-            $req_table = new req_table();
-//            $requests = $req_table->getAllRequests();
+            $o .= $OUTPUT->header();
             $cmid = $cm->id;
 
-            $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
+            $workflowid = $this->get_workflow($DB, $cmid)->id;
 
             if(has_capability('mod/workflow:lecturerapprove', $context)) {
 //                $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
-                $lecturer = $req_table->getLecturer($workflowid);
+                $lecturer = $this->getLecturer($workflowid);
 
                 if ($USER->id === $lecturer) {
-                    $requests = $req_table->getValidRequestsByWorkflow($workflowid);
-                    $requests = $req_table->processRequests($requests);
+                    $requests = $this->getValidRequestsByWorkflow($workflowid);
+                    $requests = $this->processRequests($requests);
                     $templatecontext = (object)[
                         'requests' => array_values($requests),
-                        'text' => 'text',
                         'url' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=grader',
                         'approveurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=lecturerapprove',
                         'declineurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=requestreject',
@@ -627,13 +626,12 @@ class workflow {
                 }
             } elseif (has_capability('mod/workflow:instructorapprove', $context)){
 //                $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
-                $instructor = $req_table->getInstructor($workflowid);
+                $instructor = $this->getInstructor($workflowid);
                 if ($USER->id === $instructor) {
-                    $requests = $req_table->getRequestsByWorkflow($workflowid);
-                    $requests = $req_table->processRequests($requests);
+                    $requests = $this->getRequestsByWorkflow($workflowid);
+                    $requests = $this->processRequests($requests);
                     $templatecontext = (object)[
                         'requests' => array_values($requests),
-                        'text' => 'text',
                         'url' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=grader',
                         'approveurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=instructorapprove',
                         'declineurl' => $CFG->wwwroot . '/mod/workflow/view.php?id=' . $id . '&action=requestreject',
@@ -645,7 +643,7 @@ class workflow {
                     redirect($CFG->wwwroot . '/course/view.php?id=' . $course->id, 'You are not assigned to this workflow', null, \core\output\notification::NOTIFY_ERROR);
                 }
             }
-
+            $o .= $OUTPUT->footer();
         }
         // Now show the right view page.
         else {
@@ -1450,5 +1448,60 @@ class workflow {
      */
     public function is_active_user($userid) {
         return !in_array($userid, get_suspended_userids($this->context, true));
+    }
+
+    public function getLecturer($workflowid){
+        global $DB;
+        $sql = 'id=:id';
+        $params = [
+            'id'=>$workflowid
+        ];
+        return $DB->get_field_select('workflow', 'lecturer', $sql, $params);
+    }
+
+    public function getInstructor($workflowid){
+        global $DB;
+        $sql = 'id=:id';
+        $params = [
+            'id'=>$workflowid
+        ];
+        return $DB->get_field_select('workflow', 'instructor', $sql, $params);
+    }
+
+    public function getRequestsByWorkflow($workflowid)
+    {
+        global $DB;
+        return $DB->get_records_select('workflow_request', 'workflow = :workflow', [
+            'workflow' => $workflowid
+        ]);
+    }
+
+    public function processRequests($requests)
+    {
+        foreach ($requests as $request) {
+            $stuid = $request->student;
+            $request->request_status = ucwords($request->request_status);
+            $request->submission_date = date("Y-m-d H:i:s", $request->submission_date);
+            $request->student = $this->getUsername($stuid);
+        }
+        return $requests;
+    }
+
+    public function getValidRequestsByWorkflow($workflowid)
+    {
+        global $DB;
+        return $DB->get_records_select('workflow_request', 'workflow = :workflow and request_status=:request_status', [
+            'workflow' => $workflowid,
+            'request_status' => 'accepted',
+        ]);
+    }
+
+    public function getUsername($studentid){
+        global $DB;
+        $sql = 'id=:id';
+        $params = [
+            'id'=>$studentid
+        ];
+        return $DB->get_field_select('user', 'username', $sql, $params);
     }
 }
