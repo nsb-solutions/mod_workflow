@@ -12,9 +12,6 @@
             <th scope="col" class="p-l-0">
                 <a href="" aria-label="">Type</a>
             </th>
-            <!--            <th scope="col" class="p-l-0">-->
-            <!--                <a href="" aria-label="">Individual/Batch</a>-->
-            <!--            </th>-->
             <th scope="col" class="p-l-0">
                 <a href="" aria-label="">Status</a>
             </th>
@@ -27,7 +24,7 @@
             <tr>
                 <th scope="row" class="topic p-0 align-middle">
                     <div class="p-3 p-l-0">
-                        <a class="w-100 h-100 d-block" href="{{approveurl}}&requestid={{id}}">
+                        <a class="w-100 h-100 d-block" href="{{url}}">
                         Request{{id}}
                         </a>
                     </div>
@@ -38,14 +35,6 @@
                 <td class="p-0 align-middle fit-content">
                     {{reason}}
                 </td>
-                <!--                <td class="p-0 align-middle fit-content">-->
-                    <!--                    {{#isbatchrequest}}-->
-                <!--                        Batch-->
-                    <!--                    {{/isbatchrequest}}-->
-                    <!--                    {{^isbatchrequest}}-->
-                <!--                        Individual-->
-                    <!--                    {{/isbatchrequest}}-->
-                <!--                </td>-->
                 <td class="p-0 align-middle fit-content">
                     {{request_status}}
                 </td>
