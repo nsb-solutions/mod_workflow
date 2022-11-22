@@ -45,10 +45,115 @@ class mod_workflow_testcase extends advanced_testcase {
     /**
      * test test
      */
-    public function test_one() {
+    public function test_workflow_create() {
         $this->resetAfterTest();
         $this->setUser(2);
-        $criteria = true;
-        $this->assertTrue($criteria);
+
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/workflow/locallib.php');
+
+        $workflow = new workflow(1, null, null);
+        $course = $this->getDataGenerator()->create_course();
+        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
+        $instructor = $this->getDataGenerator()->create_and_enrol($course, 'teacher');
+
+        $params = [];
+        $params['course'] = $course->id;
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
+        $instance = $generator->create_instance($params, []);
+
+        $formdata = new stdClass();
+        $formdata->name = 'Project Proposal Submission Extend';
+        $formdata->course = $course->id;
+        $formdata->intro = '';
+        $formdata->introformat = '1';
+        $formdata->workflow_type_select = 'assignment';
+        $formdata->lecturer_select = $teacher->id;
+        $formdata->instructor_select = $instructor->id;
+        $formdata->assignment_select = $instance->id;
+        $formdata->allowsubmissionsfromdate = 0;
+        $formdata->duedate = 0;
+        $formdata->cutoffdate = 0;
+
+        $returnid = $workflow->add_instance($formdata);
+
+        $this->assertIsInt($returnid);
+    }
+
+    public function test_workflow_delete() {
+        $this->resetAfterTest();
+        $this->setUser(2);
+
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/workflow/locallib.php');
+
+        $workflow = new workflow(1, null, null);
+        $course = $this->getDataGenerator()->create_course();
+        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
+        $instructor = $this->getDataGenerator()->create_and_enrol($course, 'teacher');
+
+        $params['course'] = $course->id;
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
+        $instance = $generator->create_instance($params, []);
+
+        $formdata = new stdClass();
+        $formdata->name = 'Project Proposal Submission Extend';
+        $formdata->course = $course->id;
+        $formdata->intro = '';
+        $formdata->introformat = '1';
+        $formdata->workflow_type_select = 'assignment';
+        $formdata->lecturer_select = $teacher->id;
+        $formdata->instructor_select = $instructor->id;
+        $formdata->assignment_select = $instance->id;
+        $formdata->allowsubmissionsfromdate = 0;
+        $formdata->duedate = 0;
+        $formdata->cutoffdate = 0;
+
+        $returnid = $workflow->add_instance($formdata);
+
+        $result = $workflow->delete_instance($returnid);
+        $this->assertTrue($result);
+    }
+
+    public function test_workflow_edit()
+    {
+        $this->resetAfterTest();
+        $this->setUser(2);
+
+        global $CFG;
+        require_once($CFG->dirroot . '/mod/workflow/locallib.php');
+
+        $workflow = new workflow(1, null, null);
+        $course = $this->getDataGenerator()->create_course();
+        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
+        $instructor = $this->getDataGenerator()->create_and_enrol($course, 'teacher');
+
+        $params['course'] = $course->id;
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
+        $instance = $generator->create_instance($params, []);
+
+        $formdata = new stdClass();
+        $formdata->name = 'Project Proposal Submission Extend';
+        $formdata->course = $course->id;
+        $formdata->intro = '';
+        $formdata->introformat = '1';
+        $formdata->workflow_type_select = 'assignment';
+        $formdata->lecturer_select = $teacher->id;
+        $formdata->instructor_select = $instructor->id;
+        $formdata->assignment_select = $instance->id;
+        $formdata->allowsubmissionsfromdate = 0;
+        $formdata->duedate = 0;
+        $formdata->cutoffdate = 0;
+
+        $returnid = $workflow->add_instance($formdata);
+
+        $formdata->instance = $returnid;
+        $formdata->name = 'Edited Project Proposal Submission Extend';
+
+        $newid = $workflow->update_instance($formdata);
+        $this->assertTrue($newid);
     }
 }
