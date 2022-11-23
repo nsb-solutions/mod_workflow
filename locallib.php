@@ -1249,7 +1249,9 @@ class workflow {
             if ($USER->id!=$workflow->instructor) return false;
 
             $update_request->request_status = 'accepted';
-            // TODO: save instructor comment in DB
+            $update_request->instructor_comments = $data->comments['text'];
+            $update_request->instructor_commentsformat = $data->comments['format'];
+
             $DB->update_record('workflow_request', $update_request);
             return true;
         }
@@ -1291,7 +1293,7 @@ class workflow {
             $DB->update_record('workflow_request', $update_request);
 
             // automated tasks
-            $this->run_automated_task($workflow, $data->extend_to);
+            $this->run_automated_task($workflow, $update_request->student, $data->extend_to);
 
             // inform student - send message
             $message = new \core\message\message();
@@ -1327,7 +1329,7 @@ class workflow {
      * @param Date $extend_to
      * @return boolean
      */
-    private function run_automated_task($workflow, $extend_to) {
+    private function run_automated_task($workflow, $student_id, $extend_to) {
         global $DB;
 
         if ($workflow->type=='assignment') {
@@ -1340,7 +1342,15 @@ class workflow {
             if ($assignment->cutoffdate>0 && $assignment->cutoffdate<$extend_to) {
                 $assignment->cutoffdate = $extend_to;
             }
-            $DB->update_record('assign', $assignment);
+
+            $override = new stdClass();
+            $override->assignid = $assignment->id;
+            $override->userid = $student_id;
+            $override->allowsubmissionsfromdate = $assignment->allowsubmissionsfromdate;
+            $override->duedate = $assignment->duedate;
+            $override->cutoffdate = $assignment->cutoffdate;
+
+            $DB->insert_record('assign_overrides', $override);
 
         } else if ($workflow->type=='quiz') {
             $quiz_workflow = $DB->get_record('workflow_quiz', array('workflow'=>$workflow->id), 'quiz');
@@ -1349,7 +1359,15 @@ class workflow {
             if ($quiz->timeclose>0 && $quiz->timeclose<$extend_to) {
                 $quiz->timeclose = $extend_to;
             }
-            $DB->update_record('quiz', $quiz);
+
+            $override = new stdClass();
+            $override->quiz = $quiz->id;
+            $override->userid = $student_id;
+            $override->timeopen = $quiz->timeopen;
+            $override->timeclose = $quiz->timeclose;
+            $override->timelimit = $quiz->timelimit;
+
+            $DB->insert_record('quiz_overrides', $override);
         }
         return true;
     }
