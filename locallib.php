@@ -1195,7 +1195,7 @@ class workflow {
             if ($USER->id!=$workflow->instructor) return false;
 
             $update_request->request_status = 'accepted';
-            // TODO: save instructor comment in DB
+            $update_request->instructor_comments = $data->comments;
             $DB->update_record('workflow_request', $update_request);
             return true;
         }
