@@ -15,49 +15,40 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Prints an instance of mod_workflow.
+ * Prints an instance of workflow.
  *
- * @package     mod_workflow
+ * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require(__DIR__.'/../../config.php');
 require_once(__DIR__.'/lib.php');
+require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
+global  $DB, $CFG, $PAGE;
 // Course module id.
-$id = optional_param('id', 0, PARAM_INT);
 
-// Activity instance id.
-$w = optional_param('w', 0, PARAM_INT);
+$id = required_param('id', PARAM_INT);
 
-if ($id) {
-    $cm = get_coursemodule_from_id('workflow', $id, 0, false, MUST_EXIST);
-    $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
-    $moduleinstance = $DB->get_record('workflow', array('id' => $cm->instance), '*', MUST_EXIST);
-} else {
-    $moduleinstance = $DB->get_record('workflow', array('id' => $w), '*', MUST_EXIST);
-    $course = $DB->get_record('course', array('id' => $moduleinstance->course), '*', MUST_EXIST);
-    $cm = get_coursemodule_from_instance('workflow', $moduleinstance->id, $course->id, false, MUST_EXIST);
-}
+list ($course, $cm) = get_course_and_cm_from_cmid($id, 'workflow');
 
 require_login($course, true, $cm);
 
-$modulecontext = context_module::instance($cm->id);
+$context = context_module::instance($cm->id);
 
-$event = \mod_workflow\event\course_module_viewed::create(array(
-    'objectid' => $moduleinstance->id,
-    'context' => $modulecontext
-));
-$event->add_record_snapshot('course', $course);
-$event->add_record_snapshot('workflow', $moduleinstance);
-$event->trigger();
+require_capability('mod/workflow:view', $context);
 
-$PAGE->set_url('/mod/workflow/view.php', array('id' => $cm->id));
-$PAGE->set_title(format_string($moduleinstance->name));
-$PAGE->set_heading(format_string($course->fullname));
-$PAGE->set_context($modulecontext);
+$workflow = new workflow($context, $cm, $course);
+$urlparams = array('id' => $id,
+    'action' => optional_param('action', '', PARAM_ALPHA));
 
-echo $OUTPUT->header();
+$url = new moodle_url('/mod/workflow/view.php', $urlparams);
+$PAGE->set_url($url);
 
-echo $OUTPUT->footer();
+// Update module completion status.
+$workflow->set_module_viewed();
+
+// Get the assign class to
+// render the page.
+echo $workflow->view(optional_param('action', '', PARAM_ALPHA));

@@ -1,0 +1,60 @@
+<div>
+    <h4><b>Requests</b></h4>
+    <table class="table discussion-list">
+        <thead>
+        <tr>
+            <th scope="col" class="p-l-0">
+                <a href="" aria-label="">Request</a>
+            </th>
+            <th scope="col" class="p-l-0">
+                <a href="" aria-label="">Student</a>
+            </th>
+            <th scope="col" class="p-l-0">
+                <a href="" aria-label="">Type</a>
+            </th>
+            <th scope="col" class="p-l-0">
+                <a href="" aria-label="">Status</a>
+            </th>
+            <th scope="col" class="p-l-0">
+                <a href="" aria-label="">Time Created</a>
+            </th>
+        </tr>
+        </thead>
+        {{#requests}}
+            <tr>
+                <th scope="row" class="topic p-0 align-middle">
+                    <div class="p-3 p-l-0">
+                        <a class="w-100 h-100 d-block" href="{{url}}">
+                        Request{{id}}
+                        </a>
+                    </div>
+                </th>
+                <td class="p-0 align-middle fit-content">
+                    {{student}}
+                </td>
+                <td class="p-0 align-middle fit-content">
+                    {{reason}}
+                </td>
+                <td class="p-0 align-middle fit-content">
+                    {{request_status}}
+                </td>
+                <td class="p-0 align-middle fit-content">
+                    {{submission_date}}
+                </td>
+                <td>
+                    <a class="w-100 h-100 d-block" href="{{approveurl}}&requestid={{id}}">
+                    <button type='Submit' class="btn btn-primary" value='Submit'>
+                        Approve
+                    </button>
+                </td>
+                <td>
+                    <a class="w-100 h-100 d-block" href="{{declineurl}}&requestid={{id}}">
+                    <button type='Submit' class="btn btn-primary" value='Submit'>
+                        Decline
+                    </button>
+                </td>
+            </tr>
+        {{/requests}}
+        </tbody>
+    </table>
+</div>

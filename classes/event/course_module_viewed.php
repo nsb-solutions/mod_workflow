@@ -15,17 +15,42 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Library of interface functions and constants.
  *
  * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace mod_workflow\event;
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_workflow';
-$plugin->release = '0.1.0';
-$plugin->version = 2022092420;
-$plugin->requires = 2020061500;
-$plugin->maturity = MATURITY_ALPHA;
+global $CFG;
+
+/**
+ * Library of interface functions and constants.
+ *
+ * @package     workflow
+ * @copyright   2022 NSB<nsb.software.lk@gmail.com>
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+class course_module_viewed extends \core\event\course_module_viewed {
+
+    /**
+     * Init method.
+     */
+    protected function init() {
+        $this->data['crud'] = 'r';
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
+        $this->data['objecttable'] = 'workflow';
+    }
+
+    /**
+     * Get objectid mapping
+     */
+    public static function get_objectid_mapping() {
+        return array('db' => 'workflow', 'restore' => 'workflow');
+    }
+}

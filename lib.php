@@ -17,7 +17,7 @@
 /**
  * Library of interface functions and constants.
  *
- * @package     mod_workflow
+ * @package     workflow
  * @copyright   2022 NSB<nsb.software.lk@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -40,7 +40,7 @@ function workflow_supports($feature) {
 }
 
 /**
- * Saves a new instance of the mod_workflow into the database.
+ * Saves a new instance of the workflow into the database.
  *
  * Given an object containing all the necessary data, (defined by the form
  * in mod_form.php) this function will create a new instance and return the id
@@ -51,17 +51,16 @@ function workflow_supports($feature) {
  * @return int The id of the newly inserted record.
  */
 function workflow_add_instance($moduleinstance, $mform = null) {
-    global $DB;
+    global $CFG;
+    require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
-    $moduleinstance->timecreated = time();
+    $workflow = new workflow(context_module::instance($moduleinstance->coursemodule), null, null);
 
-    $id = $DB->insert_record('workflow', $moduleinstance);
-
-    return $id;
+    return $workflow->add_instance($moduleinstance);
 }
 
 /**
- * Updates an instance of the mod_workflow in the database.
+ * Updates an instance of the workflow in the database.
  *
  * Given an object containing all the necessary data (defined in mod_form.php),
  * this function will update an existing instance with new data.
@@ -71,29 +70,28 @@ function workflow_add_instance($moduleinstance, $mform = null) {
  * @return bool True if successful, false otherwise.
  */
 function workflow_update_instance($moduleinstance, $mform = null) {
-    global $DB;
+    global $CFG;
+    require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
-    $moduleinstance->timemodified = time();
-    $moduleinstance->id = $moduleinstance->instance;
-
-    return $DB->update_record('workflow', $moduleinstance);
+    $context = context_module::instance($moduleinstance->coursemodule);
+    $workflow = new workflow($context, null, null);
+    return $workflow->update_instance($moduleinstance);
 }
 
 /**
- * Removes an instance of the mod_workflow from the database.
+ * Removes an instance of the workflow from the database.
  *
  * @param int $id Id of the module instance.
  * @return bool True if successful, false on failure.
  */
 function workflow_delete_instance($id) {
-    global $DB;
+    global $CFG;
+    require_once($CFG->dirroot . '/mod/workflow/locallib.php');
 
-    $exists = $DB->get_record('workflow', array('id' => $id));
-    if (!$exists) {
-        return false;
-    }
+    $cm = get_coursemodule_from_instance('workflow', $id, 0, false, MUST_EXIST);
+    $context = context_module::instance($cm->id);
 
-    $DB->delete_records('workflow', array('id' => $id));
+    $workflow = new workflow($context, null, null);
 
-    return true;
+    return $workflow->delete_instance($id);
 }
