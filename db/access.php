@@ -125,4 +125,5 @@ $capabilities = array(
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array()
     ),
+
 );

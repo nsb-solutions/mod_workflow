@@ -606,11 +606,10 @@ class workflow {
             $workflowid = $this->get_workflow($DB, $cmid)->id;
 
             if(has_capability('mod/workflow:lecturerapprove', $context)) {
-//                $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
                 $lecturer = $this->getLecturer($workflowid);
 
                 if ($USER->id === $lecturer) {
-                    $requests = $this->getValidRequestsByWorkflow($workflowid);
+                    $requests = $this->get_request_lecturer($workflowid);
                     $requests = $this->processRequests($requests);
                     $templatecontext = (object)[
                         'requests' => array_values($requests),
@@ -628,7 +627,7 @@ class workflow {
 //                $workflowid = $req_table->getWorkflowbyCMID($cmid)->id;
                 $instructor = $this->getInstructor($workflowid);
                 if ($USER->id === $instructor) {
-                    $requests = $this->getRequestsByWorkflow($workflowid);
+                    $requests = $this->get_request_instructor($workflowid);
                     $requests = $this->processRequests($requests);
                     $templatecontext = (object)[
                         'requests' => array_values($requests),
@@ -1468,11 +1467,12 @@ class workflow {
         return $DB->get_field_select('workflow', 'instructor', $sql, $params);
     }
 
-    public function getRequestsByWorkflow($workflowid)
+    public function get_request_instructor($workflowid)
     {
         global $DB;
-        return $DB->get_records_select('workflow_request', 'workflow = :workflow', [
-            'workflow' => $workflowid
+        return $DB->get_records_select('workflow_request', 'workflow = :workflow and request_status=:request_status', [
+            'workflow' => $workflowid,
+            'request_status' => 'pending',
         ]);
     }
 
@@ -1487,7 +1487,7 @@ class workflow {
         return $requests;
     }
 
-    public function getValidRequestsByWorkflow($workflowid)
+    public function get_request_lecturer($workflowid)
     {
         global $DB;
         return $DB->get_records_select('workflow_request', 'workflow = :workflow and request_status=:request_status', [

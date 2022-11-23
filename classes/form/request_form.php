@@ -82,4 +82,41 @@ class request_form extends moodleform {
         $errors = parent::validation($data, $files);
         return $errors;
     }
+
+    public function getAllRequests()
+    {
+        global $DB;
+        try {
+            return $DB->get_records('workflow_request');
+        } catch (dml_exception $e) {
+            return [];
+        }
+    }
+
+    public function changeStatus(string $id, string $status)
+    {
+        global $DB;
+        $sql = 'update {workflow_request} set request_status = :request_status where id= :id';
+        $params = [
+            'request_status' => $status,
+            'id' => $id,
+        ];
+
+        try {
+            return $DB->execute($sql, $params);
+        } catch (dml_exception $e) {
+            return false;
+        }
+    }
+
+    public function getRequest($requestid)
+    {
+        global $DB;
+        return $DB->get_record(
+            'workflow_request',
+            [
+                'id' => $requestid
+            ]
+        );
+    }
 }
